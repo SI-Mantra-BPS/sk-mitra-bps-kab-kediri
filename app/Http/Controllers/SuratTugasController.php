@@ -16,14 +16,14 @@ class SuratTugasController extends Controller
             ]
         );
 
-        $namaPcl = str_replace(
+        $namaMitra = str_replace(
             ['/', '\\'],
             '-',
-            $surat->nama_pcl
+            $surat->nama_mitra ?? 'Tanpa_Nama'
         );
 
         return $pdf->stream(
-            'Surat_Tugas_' . $namaPcl . '.pdf'
+            'Surat_Tugas_' . $namaMitra . '.pdf'
         );
     }
 

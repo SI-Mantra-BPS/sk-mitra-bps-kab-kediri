@@ -14,7 +14,7 @@
         */
 
         @page {
-            margin: 2.5cm;
+            margin: 2cm;
         }
 
         body {
@@ -23,7 +23,7 @@
             color: #000;
             font-family: "Cambria", Georgia, serif;
             font-size: 10pt;
-            line-height: 1.5;
+            line-height: 1.4;
         }
 
 
@@ -34,6 +34,8 @@
         */
 
         .surat {
+            width: 88%;
+            margin: 0 auto;
             page-break-after: always;
         }
 
@@ -49,7 +51,7 @@
         */
 
         .kop {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             text-align: center;
         }
 
@@ -64,7 +66,7 @@
             font-size: 11pt;
             font-weight: bold;
             font-style: italic;
-            line-height: 1.35;
+            line-height: 1.25;
             text-align: center;
         }
 
@@ -80,11 +82,11 @@
         */
 
         .judul {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             font-family: "Cambria", Georgia, serif;
             font-size: 10pt;
             font-weight: normal;
-            line-height: 1.5;
+            line-height: 1.4;
             text-align: center;
         }
 
@@ -101,21 +103,89 @@
         }
 
         .isi td {
-            padding-bottom: 9px;
+            padding-bottom: 5px;
             vertical-align: top;
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | LABEL
+        |--------------------------------------------------------------------------
+        |
+        | Dibuat lebih lebar agar tanda ":" tidak terlalu dekat
+        | dengan tulisan Menimbang, Mengingat, Kepada, Untuk,
+        | Wilayah Tugas, dan Waktu.
+        |
+        */
+
         .label {
-            width: 75px;
+            width: 95px;
+            padding-right: 8px;
             white-space: nowrap;
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | KOLOM TITIK DUA
+        |--------------------------------------------------------------------------
+        |
+        | Lebar kolom dibuat sedikit lebih besar agar terdapat
+        | jarak yang nyaman antara ":" dengan isi.
+        |
+        */
 
         .nomor {
-            width: 15px;
+            width: 25px;
+            padding-right: 8px;
             white-space: nowrap;
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | ISI UTAMA
+        |--------------------------------------------------------------------------
+        */
+
         .isi-utama {
+            text-align: justify;
+            text-justify: inter-word;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | MENIMBANG
+        |--------------------------------------------------------------------------
+        */
+
+        /*
+        | Memberikan jarak tambahan setelah bagian Menimbang
+        | sebelum masuk ke bagian Mengingat.
+        */
+
+        .baris-menimbang td {
+            padding-bottom: 9px;
+        }
+
+        .menimbang-list {
+            margin-top: 0;
+            margin-bottom: 0;
+            padding-left: 22px;
+            text-align: justify;
+        }
+
+        .menimbang-list li {
+            margin-bottom: 3px;
+            padding-left: 3px;
+            text-align: justify;
+            text-justify: inter-word;
+        }
+
+        .menimbang-single {
+            margin: 0;
             text-align: justify;
             text-justify: inter-word;
         }
@@ -135,8 +205,8 @@
         }
 
         .mengingat-list li {
-            margin-bottom: 6px;
-            padding-left: 4px;
+            margin-bottom: 3px;
+            padding-left: 3px;
             text-align: justify;
             text-justify: inter-word;
         }
@@ -149,8 +219,8 @@
         */
 
         .memberi-tugas {
-            margin-top: 24px;
-            margin-bottom: 20px;
+            margin-top: 12px;
+            margin-bottom: 10px;
             font-family: "Cambria", Georgia, serif;
             font-size: 10pt;
             font-weight: normal;
@@ -165,7 +235,7 @@
         */
 
         .detail-penugasan td {
-            padding-bottom: 9px;
+            padding-bottom: 5px;
             vertical-align: top;
         }
 
@@ -178,7 +248,8 @@
 
         .tanda-tangan {
             width: 100%;
-            margin-top: 30px;
+            margin-top: 15px;
+            page-break-inside: avoid;
         }
 
         .tanda-tangan td {
@@ -186,13 +257,14 @@
         }
 
         .tanggal {
-            text-align: center;
+            text-align: left;
+            padding-left: 20px;
         }
 
         .nama-kepala {
             font-weight: bold;
-            text-decoration: underline;
-            text-align: center;
+            text-decoration: none;
+            text-align: left;
         }
     </style>
 </head>
@@ -202,6 +274,7 @@
 
     {{-- =========================================================
          PERULANGAN SURAT
+
          1 RECORD = 1 SURAT = 1 HALAMAN
     ========================================================== --}}
 
@@ -222,8 +295,15 @@
                 >
 
                 <div class="kop-title">
-                    <span>BADAN PUSAT STATISTIK</span>
-                    <span class="kabupaten">KABUPATEN KEDIRI</span>
+
+                    <span>
+                        BADAN PUSAT STATISTIK
+                    </span>
+
+                    <span class="kabupaten">
+                        KABUPATEN KEDIRI
+                    </span>
+
                 </div>
 
             </div>
@@ -239,7 +319,7 @@
 
                 <br>
 
-                NOMOR {{ $surat->nomor_surat }}
+                NOMOR: {{ $surat->nomor_surat }}
 
             </div>
 
@@ -250,8 +330,12 @@
 
             <table class="isi">
 
-                {{-- MENIMBANG --}}
-                <tr>
+                {{-- =================================================
+                     MENIMBANG
+                ================================================== --}}
+
+                <tr class="baris-menimbang">
+
                     <td class="label">
                         Menimbang
                     </td>
@@ -262,16 +346,21 @@
 
                     <td class="isi-utama">
                         Bahwa dalam rangka kelancaran kegiatan
-                        {{ $surat->nama_survei }},
+                        <strong>{{ $surat->nama_survei }}</strong>,
                         Kepala Badan Pusat Statistik Kabupaten Kediri perlu
                         memberikan tugas/perintah kepada Pegawai BPS Kabupaten
                         Kediri dalam pelaksanaan kegiatan tersebut.
                     </td>
+
                 </tr>
 
 
-               {{-- MENGINGAT --}}
+                {{-- =================================================
+                     MENGINGAT
+                ================================================== --}}
+
                 <tr>
+
                     <td class="label">
                         Mengingat
                     </td>
@@ -281,27 +370,57 @@
                     </td>
 
                     <td>
+
                         @php
-                            // Mengantisipasi jika data tersimpan sebagai JSON String
-                            $mengingatItems = is_string($surat->mengingat) 
-                                ? json_decode($surat->mengingat, true) 
+
+                            /*
+                             * Model SuratTugas menggunakan:
+                             *
+                             * 'mengingat' => 'array'
+                             *
+                             * Pengecekan string tetap dipertahankan
+                             * untuk mengantisipasi data lama.
+                             */
+
+                            $mengingatItems = is_string($surat->mengingat)
+                                ? json_decode($surat->mengingat, true)
                                 : $surat->mengingat;
+
                         @endphp
 
-                        @if (!empty($mengingatItems) && is_array($mengingatItems))
+
+                        @if (
+                            !empty($mengingatItems)
+                            && is_array($mengingatItems)
+                        )
+
                             <ol class="mengingat-list">
+
                                 @foreach ($mengingatItems as $item)
-                                    @if (!empty($item['poin']))
+
+                                    @if (
+                                        is_array($item)
+                                        && !empty($item['poin'])
+                                    )
+
                                         <li>
                                             {{ $item['poin'] }}
                                         </li>
+
                                     @endif
+
                                 @endforeach
+
                             </ol>
+
                         @else
+
                             -
+
                         @endif
+
                     </td>
+
                 </tr>
 
             </table>
@@ -312,7 +431,9 @@
             ================================================== --}}
 
             <div class="memberi-tugas">
+
                 Memberi Perintah/Memberi Tugas
+
             </div>
 
 
@@ -322,8 +443,12 @@
 
             <table class="isi detail-penugasan">
 
-                {{-- KEPADA --}}
+                {{-- =================================================
+                     KEPADA
+                ================================================== --}}
+
                 <tr>
+
                     <td class="label">
                         Kepada
                     </td>
@@ -333,13 +458,18 @@
                     </td>
 
                     <td>
-                        {{ $surat->nama_pcl }}
+                        {{ $surat->nama_mitra ?? '-' }}
                     </td>
+
                 </tr>
 
 
-                {{-- UNTUK --}}
+                {{-- =================================================
+                     UNTUK
+                ================================================== --}}
+
                 <tr>
+
                     <td class="label">
                         Untuk
                     </td>
@@ -349,13 +479,51 @@
                     </td>
 
                     <td class="isi-utama">
-                        {{ $surat->untuk }}
+
+                        {{ $surat->untuk ?? '-' }}
+
                     </td>
+
                 </tr>
 
 
-                {{-- WAKTU --}}
+                {{-- =================================================
+                     WILAYAH TUGAS
+
+                     Hanya Format 1 yang menampilkan wilayah tugas.
+                     Letaknya setelah "Untuk".
+                ================================================== --}}
+
+                @if (
+                    $surat->format_surat === 'format_1'
+                    && !empty($surat->wilayah_tugas)
+                )
+
+                    <tr>
+
+                        <td class="label">
+                            Wilayah Tugas
+                        </td>
+
+                        <td class="nomor">
+                            :
+                        </td>
+
+                        <td>
+                            {{ $surat->wilayah_tugas }}
+                        </td>
+
+                    </tr>
+
+                @endif
+
+
+                {{-- =================================================
+                     WAKTU
+                ================================================== --}}
+
                 <tr>
+
                     <td class="label">
                         Waktu
                     </td>
@@ -365,8 +533,42 @@
                     </td>
 
                     <td>
-                        {{ $surat->waktu_tugas }}
+
+                        @if (
+                            $surat->tanggal_mulai
+                            && $surat->tanggal_selesai
+                        )
+
+                            {{ $surat->tanggal_mulai
+                                ->locale('id')
+                                ->translatedFormat('d F Y') }}
+
+                            s.d.
+
+                            {{ $surat->tanggal_selesai
+                                ->locale('id')
+                                ->translatedFormat('d F Y') }}
+
+                        @elseif ($surat->tanggal_mulai)
+
+                            {{ $surat->tanggal_mulai
+                                ->locale('id')
+                                ->translatedFormat('d F Y') }}
+
+                        @elseif ($surat->tanggal_selesai)
+
+                            {{ $surat->tanggal_selesai
+                                ->locale('id')
+                                ->translatedFormat('d F Y') }}
+
+                        @else
+
+                            -
+
+                        @endif
+
                     </td>
+
                 </tr>
 
             </table>
@@ -380,22 +582,35 @@
 
                 <tr>
 
-                    <td width="55%">
+                    <td width="60%">
                     </td>
 
-                    <td width="45%" class="tanggal">
+                    <td width="40%" class="tanggal">
 
                         Kediri,
-                        {{ $surat->tanggal_surat->locale('id')->translatedFormat('d F Y') }}
+
+                        @if ($surat->tanggal_surat)
+
+                            {{ $surat->tanggal_surat
+                                ->locale('id')
+                                ->translatedFormat('d F Y') }}
+
+                        @else
+
+                            -
+
+                        @endif
 
                         <br>
 
                         Kepala BPS Kabupaten Kediri,
 
-                        <br><br><br><br>
+                        <br><br><br><br><br><br>
 
                         <div class="nama-kepala">
+
                             Bambang Indarto S.Si., M.Si
+
                         </div>
 
                     </td>
