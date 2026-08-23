@@ -10,18 +10,20 @@ Route::get('/login', function () {
     return redirect()->route('filament.admin.auth.login');
 })->name('login');
 
+
 // ==========================================
-// ROUTE SURAT TUGAS 
+// ROUTE SURAT TUGAS
 // ==========================================
+Route::get(
+    '/surat-tugas/semua/{namaSurvei}/pdf',
+    [SuratTugasController::class, 'pdfSemua']
+)->name('surat-tugas.semua.pdf');
+
 Route::get(
     '/surat-tugas/{surat}/pdf',
     [SuratTugasController::class, 'pdf']
 )->name('surat-tugas.pdf');
 
-Route::get(
-    '/surat-tugas/semua/{namaSurvei}/pdf',
-    [SuratTugasController::class, 'pdfSemua']
-)->name('surat-tugas.semua.pdf');
 
 // ==========================================
 // ROUTE SURAT PERJANJIAN KERJA (SPK)
