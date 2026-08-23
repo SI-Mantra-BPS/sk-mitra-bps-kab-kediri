@@ -20,13 +20,13 @@ class ListSuratTugas extends ListRecords
                 ->label('Buat Surat')
                 ->icon('heroicon-o-document-plus'),
 
-            Actions\Action::make('cetakSemuaPcl')
+            Actions\Action::make('cetakSemuaSurat')
                 ->label('Cetak Surat (PDF)')
                 ->icon('heroicon-o-printer')
                 ->color('success')
                 ->modalHeading('Cetak Semua Surat Tugas (PDF)')
                 ->modalDescription(
-                    'Pilih kegiatan untuk mencetak seluruh Surat Tugas PCL pada kegiatan tersebut.'
+                    'Pilih kegiatan untuk mencetak seluruh Surat Tugas pada kegiatan tersebut.'
                 )
                 ->modalSubmitActionLabel('Cetak PDF')
                 ->modalCancelActionLabel('Batal')

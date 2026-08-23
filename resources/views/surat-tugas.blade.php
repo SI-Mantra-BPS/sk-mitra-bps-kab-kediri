@@ -235,8 +235,9 @@
         */
 
         .detail-penugasan td {
-            padding-bottom: 5px;
+            padding-bottom: 2px;
             vertical-align: top;
+            line-height: 1.25;
         }
 
 
@@ -248,7 +249,7 @@
 
         .tanda-tangan {
             width: 100%;
-            margin-top: 15px;
+            margin-top: 25px;
             page-break-inside: avoid;
         }
 
@@ -345,11 +346,54 @@
                     </td>
 
                     <td class="isi-utama">
-                        Bahwa dalam rangka kelancaran kegiatan
-                        <strong>{{ $surat->nama_survei }}</strong>,
-                        Kepala Badan Pusat Statistik Kabupaten Kediri perlu
-                        memberikan tugas/perintah kepada Pegawai BPS Kabupaten
-                        Kediri dalam pelaksanaan kegiatan tersebut.
+
+                        @php
+                            $menimbangItems = is_string($surat->menimbang)
+                                ? json_decode($surat->menimbang, true)
+                                : $surat->menimbang;
+
+                            // Ambil hanya item yang memiliki poin
+                            $menimbangItems = is_array($menimbangItems)
+                                ? array_values(
+                                    array_filter(
+                                        $menimbangItems,
+                                        fn ($item) =>
+                                            is_array($item)
+                                            && !empty($item['poin'])
+                                    )
+                                )
+                                : [];
+                        @endphp
+
+
+                        @if (count($menimbangItems) === 1)
+
+                            {{-- Jika hanya 1 poin, tidak menggunakan nomor --}}
+                            <div class="menimbang-single">
+                                {{ $menimbangItems[0]['poin'] }}
+                            </div>
+
+                        @elseif (count($menimbangItems) > 1)
+
+                            {{-- Jika lebih dari 1 poin, gunakan nomor --}}
+                            <ol class="menimbang-list">
+
+                                @foreach ($menimbangItems as $item)
+
+                                    <li>
+                                        {{ $item['poin'] }}
+                                    </li>
+
+                                @endforeach
+
+                            </ol>
+
+                        @else
+
+                            -
+
+                        @endif
+
                     </td>
 
                 </tr>
@@ -525,7 +569,7 @@
                 <tr>
 
                     <td class="label">
-                        Waktu
+                        Jangka Waktu
                     </td>
 
                     <td class="nomor">

@@ -42,12 +42,7 @@ class SuratTugasResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | DEFAULT MENIMBANG
-    |--------------------------------------------------------------------------
-    */
+    // DEFAULT MENIMBANG
     protected static function defaultMenimbang(
         ?string $namaSurvei,
         string $format = 'format_1'
@@ -72,7 +67,6 @@ class SuratTugasResource extends Resource
             ];
         }
 
-
         // FORMAT 2 - Pegawai BPS
         return [
             [
@@ -84,13 +78,7 @@ class SuratTugasResource extends Resource
         ];
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | DEFAULT MENGINGAT
-    |--------------------------------------------------------------------------
-    */
-
+    // DEFAULT MENGINGAT
     protected static function defaultMengingat(
         string $format = 'format_1'
     ): array {
@@ -143,13 +131,7 @@ class SuratTugasResource extends Resource
             ];
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | FORMAT 2
-        |--------------------------------------------------------------------------
-        */
-
+        // FORMAT 2
         return [
 
             [
@@ -185,13 +167,7 @@ class SuratTugasResource extends Resource
         ];
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | DEFAULT UNTUK
-    |--------------------------------------------------------------------------
-    */
-
+    // DEFAULT UNTUK
     protected static function defaultUntuk(
         ?string $namaSurvei,
         string $format = 'format_1'
@@ -203,55 +179,27 @@ class SuratTugasResource extends Resource
             return 'Melaksanakan kegiatan yang akan dilaksanakan.';
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | FORMAT 1
-        |--------------------------------------------------------------------------
-        */
-
+        // FORMAT 1
         if ($format === 'format_1') {
 
-            return 'Melakukan pelaksanaan kegiatan ' .
+            return 'Melakukan Pemeriksaan dan Pengawasan Lapangan ' .
                 $namaSurvei .
                 '.';
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | FORMAT 2
-        |--------------------------------------------------------------------------
-        |
-        | Contoh:
-        | Mengajar Petugas Pengganti Lapangan Sensus Ekonomi 2026 Tahun 2026
-        |
-        */
-
+        // FORMAT 2
         return 'Mengajar Petugas Pengganti Lapangan ' .
             $namaSurvei .
             ' Tahun 2026';
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | FORM
-    |--------------------------------------------------------------------------
-    */
-
+    // FORM
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | INFORMASI SURAT
-                |--------------------------------------------------------------------------
-                */
-
+                // INFORMASI SURAT
                 Section::make('Informasi Surat Tugas')
                     ->schema([
 
@@ -281,13 +229,7 @@ class SuratTugasResource extends Resource
                                     $format =
                                         $state ?: 'format_1';
 
-
-                                    /*
-                                    |--------------------------------------------------------------------------
-                                    | Update Menimbang
-                                    |--------------------------------------------------------------------------
-                                    */
-
+                                    // Update Menimbang
                                     $set(
                                         'menimbang',
                                         self::defaultMenimbang(
@@ -296,13 +238,7 @@ class SuratTugasResource extends Resource
                                         )
                                     );
 
-
-                                    /*
-                                    |--------------------------------------------------------------------------
-                                    | Update Mengingat
-                                    |--------------------------------------------------------------------------
-                                    */
-
+                                    // Update Mengingat
                                     $set(
                                         'mengingat',
                                         self::defaultMengingat(
@@ -310,13 +246,7 @@ class SuratTugasResource extends Resource
                                         )
                                     );
 
-
-                                    /*
-                                    |--------------------------------------------------------------------------
-                                    | Update Untuk
-                                    |--------------------------------------------------------------------------
-                                    */
-
+                                    // Update Untuk
                                     $set(
                                         'untuk',
                                         self::defaultUntuk(
@@ -325,13 +255,7 @@ class SuratTugasResource extends Resource
                                         )
                                     );
 
-
-                                    /*
-                                    |--------------------------------------------------------------------------
-                                    | Reset Penerima
-                                    |--------------------------------------------------------------------------
-                                    */
-
+                                    // Reset Penerima
                                     $set(
                                         'penerima',
                                         []
@@ -355,9 +279,32 @@ class SuratTugasResource extends Resource
                             ->searchable()
                             ->preload()
                             ->live()
-                            ->afterStateUpdated(function ($set) {
-                                $set('nama_pcl', null);
-                                $set('wilayah_tugas', null);
+                            ->afterStateUpdated(function (
+                                $state,
+                                Set $set,
+                                Get $get
+                            ) {
+
+                                // Reset data penerima
+                                $set('penerima', []);
+
+                                // Update Menimbang berdasarkan kegiatan
+                                $set(
+                                    'menimbang',
+                                    self::defaultMenimbang(
+                                        $state,
+                                        $get('format_surat') ?: 'format_1'
+                                    )
+                                );
+
+                                // Update Untuk berdasarkan kegiatan
+                                $set(
+                                    'untuk',
+                                    self::defaultUntuk(
+                                        $state,
+                                        $get('format_surat') ?: 'format_1'
+                                    )
+                                );
                             })
                             ->required(),
 
@@ -372,12 +319,7 @@ class SuratTugasResource extends Resource
                     ->columns(2),
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | MENIMBANG
-                |--------------------------------------------------------------------------
-                */
-
+                // MENIMBANG
                 Section::make('Menimbang')
                     ->description(
                         'Pertimbangan otomatis disesuaikan dengan format surat. Anda tetap dapat menambah, mengubah, menghapus, atau mengurutkannya.'
@@ -495,26 +437,6 @@ class SuratTugasResource extends Resource
                                 }
                             ),
 
-
-                        FormAction::make('preview_pdf')
-                            ->label('Preview Surat')
-                            ->icon('heroicon-o-eye')
-                            ->color('info')
-                            ->url(
-                                fn ($record) =>
-                                    $record
-                                        ? route(
-                                            'surat-tugas.pdf',
-                                            $record
-                                        )
-                                        : null
-                            )
-                            ->openUrlInNewTab()
-                            ->visible(
-                                fn ($record) =>
-                                    $record !== null
-                            ),
-
                     ])
                     ->schema([
 
@@ -532,12 +454,7 @@ class SuratTugasResource extends Resource
                     ]),
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | MENGINGAT
-                |--------------------------------------------------------------------------
-                */
-
+                // MENGINGAT
                 Section::make('Mengingat')
                     ->description(
                         'Dasar hukum otomatis disesuaikan dengan format surat. Anda tetap dapat menambah, mengubah, menghapus, atau mengurutkannya.'
@@ -670,12 +587,7 @@ class SuratTugasResource extends Resource
                     ]),
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | PENERIMA SURAT
-                |--------------------------------------------------------------------------
-                */
-
+                // PENERIMA SURAT
                 Section::make('Penerima Surat')
                     ->description(
                         'Tambahkan satu atau beberapa penerima. Setiap penerima akan dibuat menjadi satu Surat Tugas.'
@@ -694,12 +606,7 @@ class SuratTugasResource extends Resource
                             ->schema([
 
 
-                                /*
-                                |--------------------------------------------------------------------------
-                                | NOMOR SURAT
-                                |--------------------------------------------------------------------------
-                                */
-
+                                // NOMOR SURAT
                                 TextInput::make('nomor_surat')
                                     ->label('Nomor Surat')
                                     ->required()
@@ -709,12 +616,7 @@ class SuratTugasResource extends Resource
                                     ),
 
 
-                                /*
-                                |--------------------------------------------------------------------------
-                                | JENIS PETUGAS
-                                |--------------------------------------------------------------------------
-                                */
-
+                                // JENIS PETUGAS
                                 Select::make('jenis_mitra')
                                     ->label('Jenis Petugas')
                                     ->options([
@@ -749,12 +651,7 @@ class SuratTugasResource extends Resource
                                     ),
 
 
-                                /*
-                                |--------------------------------------------------------------------------
-                                | NAMA PETUGAS
-                                |--------------------------------------------------------------------------
-                                */
-
+                                // NAMA PETUGAS
                                 Select::make('nama_mitra')
                                     ->label('Nama Petugas')
                                     ->options(
@@ -773,12 +670,7 @@ class SuratTugasResource extends Resource
                                                 );
 
 
-                                            /*
-                                            |--------------------------------------------------------------------------
-                                            | PCL
-                                            |--------------------------------------------------------------------------
-                                            */
-
+                                            // PCL
                                             if (
                                                 $jenisMitra ===
                                                 'PCL'
@@ -818,12 +710,7 @@ class SuratTugasResource extends Resource
                                             }
 
 
-                                            /*
-                                            |--------------------------------------------------------------------------
-                                            | PML
-                                            |--------------------------------------------------------------------------
-                                            */
-
+                                            // PML
                                             if (
                                                 $jenisMitra ===
                                                 'PML'
@@ -849,12 +736,7 @@ class SuratTugasResource extends Resource
                                             }
 
 
-                                            /*
-                                            |--------------------------------------------------------------------------
-                                            | PEGAWAI BPS
-                                            |--------------------------------------------------------------------------
-                                            */
-
+                                            // PEGAWAI BPS
                                             if (
                                                 $jenisMitra ===
                                                 'Pegawai BPS'
@@ -905,12 +787,7 @@ class SuratTugasResource extends Resource
                                             Get $get
                                         ) {
 
-                                            /*
-                                            |--------------------------------------------------------------------------
-                                            | Hanya PCL yang otomatis mendapatkan wilayah
-                                            |--------------------------------------------------------------------------
-                                            */
-
+                                            // Hanya PCL yang otomatis mendapatkan wilayah
                                             if (
                                                 $get(
                                                     'jenis_mitra'
@@ -958,19 +835,7 @@ class SuratTugasResource extends Resource
                                     ),
 
 
-                                /*
-                                |--------------------------------------------------------------------------
-                                | WILAYAH TUGAS
-                                |--------------------------------------------------------------------------
-                                |
-                                | Format 1:
-                                | Ditampilkan.
-                                |
-                                | Format 2:
-                                | Tidak ditampilkan karena contoh surat
-                                | Format 2 tidak memiliki wilayah tugas.
-                                */
-
+                                // WILAYAH TUGAS
                                 TextInput::make('wilayah_tugas')
                                     ->label('Wilayah Tugas')
                                     ->placeholder(
@@ -996,12 +861,7 @@ class SuratTugasResource extends Resource
                     ]),
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | DETAIL PENUGASAN
-                |--------------------------------------------------------------------------
-                */
-
+                // DETAIL PENUGASAN
                 Section::make('Detail Penugasan')
                     ->schema([
 
@@ -1017,12 +877,7 @@ class SuratTugasResource extends Resource
                     ]),
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | JANGKA WAKTU
-                |--------------------------------------------------------------------------
-                */
-
+                // JANGKA WAKTU
                 Section::make('Jangka Waktu')
                     ->description(
                         'Tentukan periode pelaksanaan tugas.'
@@ -1056,12 +911,7 @@ class SuratTugasResource extends Resource
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | TABLE
-    |--------------------------------------------------------------------------
-    */
-
+    // TABLE
     public static function table(Table $table): Table
     {
         return $table
@@ -1081,13 +931,13 @@ class SuratTugasResource extends Resource
 
                 TextColumn::make('format_surat')
                     ->label('Format')
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'format_1' => 'Format 1',
+                        'format_2' => 'Format 2',
+                        default => '-',
+                    })
                     ->badge()
-                    ->formatStateUsing(
-                        fn ($state) =>
-                            $state === 'format_1'
-                                ? 'Format 1'
-                                : 'Format 2'
-                    ),
+                    ->color('info'),
 
 
                 TextColumn::make('nama_survei')
@@ -1098,7 +948,8 @@ class SuratTugasResource extends Resource
 
                 TextColumn::make('jenis_mitra')
                     ->label('Jenis Petugas')
-                    ->badge(),
+                    ->badge()
+                    ->color('warning'),
 
 
                 TextColumn::make('nama_mitra')
@@ -1163,26 +1014,17 @@ class SuratTugasResource extends Resource
 
             ->filters([
 
+                // KEGIATAN
                 SelectFilter::make('nama_survei')
                     ->label('Kegiatan')
                     ->options(
                         fn () =>
                             SuratTugas::query()
-                                ->whereNotNull(
-                                    'nama_survei'
-                                )
-                                ->where(
-                                    'nama_survei',
-                                    '!=',
-                                    ''
-                                )
-                                ->select(
-                                    'nama_survei'
-                                )
+                                ->whereNotNull('nama_survei')
+                                ->where('nama_survei', '!=', '')
+                                ->select('nama_survei')
                                 ->distinct()
-                                ->orderBy(
-                                    'nama_survei'
-                                )
+                                ->orderBy('nama_survei')
                                 ->pluck(
                                     'nama_survei',
                                     'nama_survei'
@@ -1194,79 +1036,16 @@ class SuratTugasResource extends Resource
                     ->native(false),
 
 
-                SelectFilter::make('format_surat')
-                    ->label('Format Surat')
-                    ->options([
-                        'format_1' =>
-                            'Format 1',
-
-                        'format_2' =>
-                            'Format 2',
-                    ])
-                    ->native(false),
-
-
-                SelectFilter::make('jenis_mitra')
-                    ->label('Jenis Petugas')
-                    ->options([
-                        'PCL' =>
-                            'PCL',
-
-                        'PML' =>
-                            'PML',
-
-                        'Pegawai BPS' =>
-                            'Pegawai BPS',
-                    ])
-                    ->native(false),
-
-
-                SelectFilter::make('nama_mitra')
-                    ->label('Nama Petugas')
-                    ->options(
-                        fn () =>
-                            SuratTugas::query()
-                                ->whereNotNull(
-                                    'nama_mitra'
-                                )
-                                ->where(
-                                    'nama_mitra',
-                                    '!=',
-                                    ''
-                                )
-                                ->select(
-                                    'nama_mitra'
-                                )
-                                ->distinct()
-                                ->orderBy(
-                                    'nama_mitra'
-                                )
-                                ->pluck(
-                                    'nama_mitra',
-                                    'nama_mitra'
-                                )
-                                ->toArray()
-                    )
-                    ->searchable()
-                    ->preload()
-                    ->native(false),
-
-
+                // TAHUN
                 SelectFilter::make('tahun')
                     ->label('Tahun')
                     ->options(
                         fn () =>
                             SuratTugas::query()
-                                ->whereNotNull(
-                                    'tanggal_surat'
-                                )
-                                ->selectRaw(
-                                    'YEAR(tanggal_surat) as tahun'
-                                )
+                                ->whereNotNull('tanggal_surat')
+                                ->selectRaw('YEAR(tanggal_surat) as tahun')
                                 ->distinct()
-                                ->orderByDesc(
-                                    'tahun'
-                                )
+                                ->orderByDesc('tahun')
                                 ->pluck(
                                     'tahun',
                                     'tahun'
@@ -1275,16 +1054,9 @@ class SuratTugasResource extends Resource
                     )
                     ->native(false)
                     ->query(
-                        function (
-                            $query,
-                            array $data
-                        ) {
+                        function ($query, array $data) {
 
-                            if (
-                                ! empty(
-                                    $data['value']
-                                )
-                            ) {
+                            if (! empty($data['value'])) {
 
                                 $query->whereYear(
                                     'tanggal_surat',
@@ -1294,21 +1066,71 @@ class SuratTugasResource extends Resource
                         }
                     ),
 
+
+                // JENIS PETUGAS
+                SelectFilter::make('jenis_mitra')
+                    ->label('Jenis Petugas')
+                    ->options([
+                        'PCL' => 'PCL',
+                        'PML' => 'PML',
+                        'Pegawai BPS' => 'Pegawai BPS',
+                    ])
+                    ->native(false),
+
+
+                // NAMA PETUGAS
+                SelectFilter::make('nama_mitra')
+                    ->label('Nama Petugas')
+                    ->options(
+                        fn () =>
+                            SuratTugas::query()
+                                ->whereNotNull('nama_mitra')
+                                ->where('nama_mitra', '!=', '')
+                                ->select('nama_mitra')
+                                ->distinct()
+                                ->orderBy('nama_mitra')
+                                ->pluck(
+                                    'nama_mitra',
+                                    'nama_mitra'
+                                )
+                                ->toArray()
+                    )
+                    ->searchable()
+                    ->preload()
+                    ->native(false),
+
             ])
             ->filtersLayout(
                 FiltersLayout::AboveContent
             )
             ->filtersFormColumns(4)
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | ACTIONS
-            |--------------------------------------------------------------------------
-            */
-
+            // ACTIONS
             ->actions([
 
+                // PREVIEW
+                Tables\Actions\Action::make('preview')
+                    ->label('Preview')
+                    ->icon('heroicon-o-eye')
+                    ->color('info')
+                    ->modalHeading(
+                        fn ($record) =>
+                            'Preview Surat Tugas - ' . $record->nomor_surat
+                    )
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Tutup')
+                    ->modalWidth('7xl')
+                    ->modalContent(
+                        fn ($record) =>
+                            view(
+                                'filament.pages.surat-tugas-preview',
+                                [
+                                    'surat' => $record,
+                                ]
+                            )
+                    ),
+
+                // CETAK PDF
                 Tables\Actions\Action::make('pdf')
                     ->label('Cetak PDF')
                     ->icon('heroicon-o-printer')
@@ -1322,24 +1144,16 @@ class SuratTugasResource extends Resource
                     )
                     ->openUrlInNewTab(),
 
-
                 Tables\Actions\EditAction::make(),
-
 
                 Tables\Actions\DeleteAction::make(),
 
             ])
 
-
             ->actionsColumnLabel('Aksi')
 
 
-            /*
-            |--------------------------------------------------------------------------
-            | BULK ACTION
-            |--------------------------------------------------------------------------
-            */
-
+            // BULK ACTION
             ->bulkActions([
 
                 Tables\Actions\BulkActionGroup::make([
@@ -1352,24 +1166,14 @@ class SuratTugasResource extends Resource
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | RELATIONS
-    |--------------------------------------------------------------------------
-    */
-
+    // RELATIONS
     public static function getRelations(): array
     {
         return [];
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | PAGES
-    |--------------------------------------------------------------------------
-    */
-
+    // PAGES
     public static function getPages(): array
     {
         return [
