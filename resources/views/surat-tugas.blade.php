@@ -344,68 +344,12 @@
                         :
                     </td>
 
-                    <td>
-
-                        @php
-
-                            $menimbangItems = is_string($surat->menimbang)
-                                ? json_decode($surat->menimbang, true)
-                                : $surat->menimbang;
-
-                            $menimbangItems = is_array($menimbangItems)
-                                ? array_values(
-                                    array_filter(
-                                        $menimbangItems,
-                                        fn ($item) =>
-                                            is_array($item)
-                                            && !empty($item['poin'])
-                                    )
-                                )
-                                : [];
-
-                        @endphp
-
-
-                        @if (count($menimbangItems) === 1)
-
-                            {{-- =================================================
-                                 JIKA HANYA 1 POIN
-                                 Tidak menggunakan nomor.
-                            ================================================== --}}
-
-                            <div class="menimbang-single">
-
-                                {{ $menimbangItems[0]['poin'] }}
-
-                            </div>
-
-
-                        @elseif (count($menimbangItems) > 1)
-
-                            {{-- =================================================
-                                 JIKA LEBIH DARI 1 POIN
-                                 Menggunakan nomor.
-                            ================================================== --}}
-
-                            <ol class="menimbang-list">
-
-                                @foreach ($menimbangItems as $item)
-
-                                    <li>
-                                        {{ $item['poin'] }}
-                                    </li>
-
-                                @endforeach
-
-                            </ol>
-
-
-                        @else
-
-                            -
-
-                        @endif
-
+                    <td class="isi-utama">
+                        Bahwa dalam rangka kelancaran kegiatan
+                        <strong>{{ $surat->nama_survei }}</strong>,
+                        Kepala Badan Pusat Statistik Kabupaten Kediri perlu
+                        memberikan tugas/perintah kepada Pegawai BPS Kabupaten
+                        Kediri dalam pelaksanaan kegiatan tersebut.
                     </td>
 
                 </tr>

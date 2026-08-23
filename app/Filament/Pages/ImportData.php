@@ -31,7 +31,7 @@ class ImportData extends Page
     /**
      * File Excel yang dipilih.
      */
-    public $excelFile;
+    public mixed $excelFile = null;
 
     /**
      * Status apakah file sudah siap untuk preview.

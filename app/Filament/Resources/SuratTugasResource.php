@@ -342,82 +342,24 @@ class SuratTugasResource extends Resource
 
                         Select::make('nama_survei')
                             ->label('Nama Kegiatan / Survei')
-                            ->options(
-                                function () {
-
-                                    return SurveyActivity::query()
-                                        ->where(
-                                            'status',
-                                            'Aktif'
-                                        )
-                                        ->orderBy(
-                                            'nama_kegiatan'
-                                        )
-                                        ->pluck(
-                                            'nama_kegiatan',
-                                            'nama_kegiatan'
-                                        )
-                                        ->toArray();
-                                }
-                            )
+                            ->options(function () {
+                                return SurveyActivity::query()
+                                    ->where('status', 'Aktif')
+                                    ->orderBy('nama_kegiatan')
+                                    ->pluck(
+                                        'nama_kegiatan',
+                                        'nama_kegiatan'
+                                    )
+                                    ->toArray();
+                            })
                             ->searchable()
                             ->preload()
                             ->live()
-                            ->required()
-                            ->afterStateUpdated(
-                                function (
-                                    $state,
-                                    Set $set,
-                                    Get $get
-                                ) {
-
-                                    $set(
-                                        'penerima',
-                                        []
-                                    );
-
-                                    $set(
-                                        'wilayah_tugas',
-                                        null
-                                    );
-
-
-                                    $format =
-                                        $get('format_surat')
-                                        ?: 'format_1';
-
-
-                                    /*
-                                    |--------------------------------------------------------------------------
-                                    | Update Menimbang
-                                    |--------------------------------------------------------------------------
-                                    */
-
-                                    $set(
-                                        'menimbang',
-                                        self::defaultMenimbang(
-                                            $state,
-                                            $format
-                                        )
-                                    );
-
-
-                                    /*
-                                    |--------------------------------------------------------------------------
-                                    | Update Untuk
-                                    |--------------------------------------------------------------------------
-                                    */
-
-                                    $set(
-                                        'untuk',
-                                        self::defaultUntuk(
-                                            $state,
-                                            $format
-                                        )
-                                    );
-                                }
-                            ),
-
+                            ->afterStateUpdated(function ($set) {
+                                $set('nama_pcl', null);
+                                $set('wilayah_tugas', null);
+                            })
+                            ->required(),
 
                         DatePicker::make('tanggal_surat')
                             ->label('Tanggal Surat')
@@ -1066,17 +1008,9 @@ class SuratTugasResource extends Resource
                         Textarea::make('untuk')
                             ->label('Untuk')
                             ->required()
-                            ->rows(4)
-                            ->default(
-                                fn (Get $get) =>
-                                    self::defaultUntuk(
-                                        $get('nama_survei'),
-                                        $get('format_surat')
-                                            ?: 'format_1'
-                                    )
-                            )
-                            ->helperText(
-                                'Kalimat akan terisi otomatis berdasarkan format dan kegiatan, tetapi tetap dapat diedit sesuai kebutuhan.'
+                            ->rows(3)
+                            ->placeholder(
+                                'Contoh: Untuk melaksanakan kegiatan IBS Triwulan 4 di wilayah kerja yang telah ditentukan.'
                             )
                             ->columnSpanFull(),
 
