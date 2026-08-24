@@ -377,6 +377,8 @@ class MonitoringSurveyResource extends Resource
 
             'edit' => Pages\EditMonitoringSurvey::route('/{record}/edit'),
 
+            'import' => Pages\ImportMonitoringSurveys::route('/import'),
+
         ];
     }
 }

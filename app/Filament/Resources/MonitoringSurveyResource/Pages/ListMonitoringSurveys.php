@@ -43,6 +43,14 @@ class ListMonitoringSurveys extends ListRecords
                     );
 
                 }),
+
+            Actions\Action::make('importData')
+                ->label('Import Data')
+                ->icon('heroicon-o-arrow-up-tray')
+                ->color('success')
+                ->url(
+                    fn () => static::getResource()::getUrl('import')
+                ),
         ];
     }
 
