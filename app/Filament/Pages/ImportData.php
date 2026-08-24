@@ -22,7 +22,7 @@ class ImportData extends Page
 
     protected static ?string $navigationIcon = 'heroicon-o-document-arrow-up';
 
-    protected static ?string $title = 'Import Data Excel';
+    protected static ?string $title = 'Import Master Data';
 
     protected static ?string $navigationGroup = 'MASTER DATA';
 
