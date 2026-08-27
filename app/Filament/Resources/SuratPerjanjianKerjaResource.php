@@ -15,8 +15,6 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\BulkAction;
-use Filament\Tables\Actions\BulkActionGroup;
-use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;
@@ -86,7 +84,7 @@ class SuratPerjanjianKerjaResource extends Resource
                                     $alamat = $pcl->alamat ?? $pcl->alamat_pcl ?? '';
                                     $set('alamat_pcl', $alamat);
 
-                                    // Query data survei monitoring
+                                    // Fix Query Grouping agar data survei tidak tertukar
                                     $monitorings = MonitoringSurvey::query()
                                         ->where('nama_pcl', $pcl->nama_pcl)
                                         ->get();
@@ -248,6 +246,8 @@ class SuratPerjanjianKerjaResource extends Resource
                     ->sortable()
                     ->default('-'),
 
+                // Menggunakan relasi pcl.nama_pcl (Disarankan menambahkan relasi pcl() di Model SuratPerjanjianKerja)
+                // Atau penanganan fallback aman tanpa query terpisah berulang:
                 Tables\Columns\TextColumn::make('pcl.nama_pcl')
                     ->label('Nama PCL (Pihak Kedua)')
                     ->searchable()
@@ -284,29 +284,28 @@ class SuratPerjanjianKerjaResource extends Resource
                     ->label('Cetak PDF')
                     ->color('success')
                     ->icon('heroicon-o-printer')
-                    ->url(fn (SuratPerjanjianKerja $record) => route('spk.cetak-pdf', ['id' => $record->id]))
+                    // PERBAIKAN: Kirim ID langsung sebagai parameter URL
+                    ->url(fn (SuratPerjanjianKerja $record) => route('spk.cetak-pdf', $record->id))
                     ->openUrlInNewTab(),
 
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
-                // MENGUBAH NAMA DROPDOWN BULK ACTION MENJADI BAHASA INDONESIA
-                BulkActionGroup::make([
+                Tables\Actions\BulkActionGroup::make([
                     BulkAction::make('cetak_banyak_pdf')
                         ->label('Cetak SPK Terpilih')
                         ->color('success')
                         ->icon('heroicon-o-printer')
-                        ->action(function (Collection $records) {
+                        // PERBAIKAN: Gunakan openUrlInNewTab via Livewire javascript agar bisa buka tab baru tanpa error redirect
+                        ->action(function (Collection $records, $livewire) {
                             $ids = $records->pluck('id')->implode(',');
-                            return redirect()->to(route('spk.cetak-pdf', ['ids' => $ids]));
+                            $url = route('spk.cetak-pdf-bulk', ['ids' => $ids]);
+                            $livewire->js("window.open('{$url}', '_blank');");
                         }),
 
-                    // MENGUBAH LABEL DELETE SELECTED MENJADI BAHASA INDONESIA
-                    DeleteBulkAction::make()
-                        ->label('Hapus Terpilih'),
-                ])
-                ->label('Aksi Massal'), // <-- Mengubah teks "Bulk actions"
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
     }
 

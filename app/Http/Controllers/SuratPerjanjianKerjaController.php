@@ -6,6 +6,7 @@ use App\Models\SuratPerjanjianKerja;
 use App\Models\Pcl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class SuratPerjanjianKerjaController extends Controller
@@ -59,74 +60,58 @@ class SuratPerjanjianKerjaController extends Controller
     }
 
     /**
-     * Cetak PDF untuk single (id) atau bulk terpilih (ids)
+     * Cetak PDF Single/Tunggal per Baris
+     * Mengambil ID dari Path Route: /spk/cetak-pdf/{id}
      */
-    public function cetakPdf(Request $request)
+    public function cetakPdf(Request $request, $id = null)
     {
+        // Fallback jika ID dikirim melalui query parameter ?id=1
+        $targetId = $id ?? $request->query('id');
+
+        if (!$targetId) {
+            abort(404, 'ID Surat Perjanjian Kerja tidak ditemukan.');
+        }
+
         $relations = $this->getBaseRelations();
+        $spk = SuratPerjanjianKerja::with($relations)->findOrFail($targetId);
+        
+        $spkList = collect([$spk]);
+        $spkList = $this->processSpkData($spkList);
+        $singleSpk = $spkList->first();
 
-        // 1. Cetak Single Data berdasarkan parameter ?id=
-        if ($request->filled('id')) {
-            $spk = SuratPerjanjianKerja::with($relations)->findOrFail($request->id);
-            
-            $spkList = collect([$spk]);
-            $spkList = $this->processSpkData($spkList);
-            $singleSpk = $spkList->first();
+        $viewName = view()->exists('pdf.spk') ? 'pdf.spk' : 'spk';
 
-            $viewName = view()->exists('pdf.spk') ? 'pdf.spk' : 'spk';
+        $pdf = Pdf::loadView($viewName, [
+            'spk' => $singleSpk,
+            'spkList' => $spkList,
+        ])->setPaper('a4', 'portrait');
 
-            $pdf = Pdf::loadView($viewName, [
-                'spk' => $singleSpk,
-                'spkList' => $spkList,
-            ])->setPaper('a4', 'portrait');
+        // Bersihkan nomor SPK dari garis miring (/) agar tidak merusak nama file saat download
+        $safeNomorSpk = Str::slug($singleSpk->nomor_spk ?? $singleSpk->id, '_');
+        $namaFile = 'SPK_' . $safeNomorSpk . '.pdf';
 
-            // UBAH NAMA FILE SINGLE DI SINI
-            $namaFile = 'SPK_' . ($singleSpk->nomor_spk ?? $singleSpk->id) . '.pdf';
-
-            return $pdf->stream($namaFile);
-        }
-
-        // 2. Cetak Bulk Data berdasarkan parameter ?ids=1,2,3
-        if ($request->filled('ids')) {
-            $ids = is_array($request->ids) ? $request->ids : explode(',', $request->ids);
-            
-            $spkList = SuratPerjanjianKerja::with($relations)
-                ->whereIn('id', $ids)
-                ->get();
-
-            if ($spkList->isEmpty()) {
-                abort(404, 'Data SPK terpilih tidak ditemukan.');
-            }
-
-            $spkList = $this->processSpkData($spkList);
-            $viewName = view()->exists('pdf.spk') ? 'pdf.spk' : 'spk';
-
-            $pdf = Pdf::loadView($viewName, [
-                'spk' => $spkList->first(),
-                'spkList' => $spkList,
-            ])->setPaper('a4', 'portrait');
-
-            // UBAH NAMA FILE BULK TERPILIH DI SINI
-            $namaFile = 'SPK_Terpilih_' . date('Ymd_His') . '.pdf';
-
-            return $pdf->stream($namaFile);
-        }
-
-        abort(404, 'Parameter ID atau IDs SPK tidak ditemukan.');
+        return $pdf->stream($namaFile);
     }
 
     /**
-     * Cetak semua PDF (Semua Data / Sesuai Filter)
+     * Cetak PDF Terpilih (Bulk Checkbox) atau Semua Data
+     * Mengambil parameter query ?ids=1,2,3 dari route: /spk/cetak-bulk-pdf
      */
     public function cetakSemuaPdf(Request $request)
     {
         $relations = $this->getBaseRelations();
         $query = SuratPerjanjianKerja::with($relations);
 
+        // 1. Jika mencetak data terpilih via checkbox (Bulk Action)
+        if ($request->filled('ids')) {
+            $ids = is_array($request->ids) ? $request->ids : explode(',', $request->ids);
+            $query->whereIn('id', array_filter($ids));
+        }
+
+        // 2. Jika mencetak dengan filter pencarian dari Filament
         $mode = $request->query('mode', 'semua');
         $search = $request->query('search');
 
-        // Jika user memilih opsi 'filter' dan ada kata kunci pencarian dari tabel Filament
         if ($mode === 'filter' && !empty($search)) {
             $query->where(function ($q) use ($search) {
                 $q->where('nomor_spk', 'like', "%{$search}%")
@@ -151,10 +136,9 @@ class SuratPerjanjianKerjaController extends Controller
             'spkList' => $spkList,
         ])->setPaper('a4', 'portrait');
 
-        // =========================================================
-        // UBAH NAMA FILE HASIL CETAK SEMUA / BULK PDF DI SINI:
-        // =========================================================
-        $namaFile = 'Surat_Perjanjian_Kerja_Semua_Data.pdf';
+        $namaFile = $request->filled('ids') 
+            ? 'SPK_Terpilih_' . date('Ymd_His') . '.pdf'
+            : 'Surat_Perjanjian_Kerja_Semua_Data.pdf';
 
         return $pdf->stream($namaFile);
     }

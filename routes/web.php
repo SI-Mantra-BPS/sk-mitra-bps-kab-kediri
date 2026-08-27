@@ -29,9 +29,9 @@ Route::get(
 // ROUTE SURAT PERJANJIAN KERJA (SPK)
 // ==========================================
 Route::middleware(['auth'])->group(function () {
-    // Route cetak tunggal
-    Route::get('/spk/cetak-pdf/{id?}', [SuratPerjanjianKerjaController::class, 'cetakPdf'])->name('spk.cetak-pdf');
-
-    // PERBAIKAN: Mengarahkan ke method 'cetakSemuaPdf' di Controller
+    // 1. Route Cetak Bulk (Ditaruh lebih atas agar tidak tertimpa route wildcard/ID)
     Route::get('/spk/cetak-bulk-pdf', [SuratPerjanjianKerjaController::class, 'cetakSemuaPdf'])->name('spk.cetak-bulk-pdf');
+
+    // 2. Route Cetak Tunggal / Single (Menggunakan ID wajib/tanpa tanda tanya ?)
+    Route::get('/spk/cetak-pdf/{id}', [SuratPerjanjianKerjaController::class, 'cetakPdf'])->name('spk.cetak-pdf');
 });
