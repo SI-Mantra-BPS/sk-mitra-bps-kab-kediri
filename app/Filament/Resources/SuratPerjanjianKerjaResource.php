@@ -15,6 +15,8 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\BulkAction;
+use Filament\Tables\Actions\BulkActionGroup;
+use Filament\Tables\Actions\DeleteBulkAction;
 use Filament\Tables\Filters\SelectFilter;
 use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;
@@ -84,7 +86,7 @@ class SuratPerjanjianKerjaResource extends Resource
                                     $alamat = $pcl->alamat ?? $pcl->alamat_pcl ?? '';
                                     $set('alamat_pcl', $alamat);
 
-                                    // Fix Query Grouping agar data survei tidak tertukar
+                                    // Query data survei monitoring
                                     $monitorings = MonitoringSurvey::query()
                                         ->where('nama_pcl', $pcl->nama_pcl)
                                         ->get();
@@ -246,8 +248,6 @@ class SuratPerjanjianKerjaResource extends Resource
                     ->sortable()
                     ->default('-'),
 
-                // Menggunakan relasi pcl.nama_pcl (Disarankan menambahkan relasi pcl() di Model SuratPerjanjianKerja)
-                // Atau penanganan fallback aman tanpa query terpisah berulang:
                 Tables\Columns\TextColumn::make('pcl.nama_pcl')
                     ->label('Nama PCL (Pihak Kedua)')
                     ->searchable()
@@ -291,7 +291,8 @@ class SuratPerjanjianKerjaResource extends Resource
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
+                // MENGUBAH NAMA DROPDOWN BULK ACTION MENJADI BAHASA INDONESIA
+                BulkActionGroup::make([
                     BulkAction::make('cetak_banyak_pdf')
                         ->label('Cetak SPK Terpilih')
                         ->color('success')
@@ -301,8 +302,11 @@ class SuratPerjanjianKerjaResource extends Resource
                             return redirect()->to(route('spk.cetak-pdf', ['ids' => $ids]));
                         }),
 
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                    // MENGUBAH LABEL DELETE SELECTED MENJADI BAHASA INDONESIA
+                    DeleteBulkAction::make()
+                        ->label('Hapus Terpilih'),
+                ])
+                ->label('Aksi Massal'), // <-- Mengubah teks "Bulk actions"
             ]);
     }
 

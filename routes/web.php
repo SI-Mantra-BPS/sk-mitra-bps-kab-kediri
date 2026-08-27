@@ -28,12 +28,10 @@ Route::get(
 // ==========================================
 // ROUTE SURAT PERJANJIAN KERJA (SPK)
 // ==========================================
-Route::middleware(['web', 'auth'])->group(function () {
-    // Cetak Single/Bulk PDF per baris
-    Route::get('/spk/cetak-pdf', [SuratPerjanjianKerjaController::class, 'cetakPdf'])
-        ->name('spk.cetak-pdf');
+Route::middleware(['auth'])->group(function () {
+    // Route cetak tunggal
+    Route::get('/spk/cetak-pdf/{id?}', [SuratPerjanjianKerjaController::class, 'cetakPdf'])->name('spk.cetak-pdf');
 
-    // Cetak Semua PDF berdasarkan Nama Kegiatan dari Modal Dropdown
-    Route::get('/spk/cetak-semua-pdf', [SuratPerjanjianKerjaController::class, 'cetakSemuaPdf'])
-        ->name('spk.cetak-semua-pdf');
+    // PERBAIKAN: Mengarahkan ke method 'cetakSemuaPdf' di Controller
+    Route::get('/spk/cetak-bulk-pdf', [SuratPerjanjianKerjaController::class, 'cetakSemuaPdf'])->name('spk.cetak-bulk-pdf');
 });

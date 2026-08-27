@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SuratPerjanjianKerja;
 use App\Models\Pcl;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class SuratPerjanjianKerjaController extends Controller
@@ -26,8 +27,11 @@ class SuratPerjanjianKerjaController extends Controller
 
     /**
      * Helper privat untuk melengkapi data SPK dan parse array detail_kegiatan
+     * 
+     * @param Collection $spkCollection
+     * @return Collection
      */
-    private function processSpkData($spkCollection)
+    private function processSpkData(Collection $spkCollection): Collection
     {
         return $spkCollection->map(function ($spk) {
             // 1. Ambil Nama & Alamat PCL
@@ -69,18 +73,22 @@ class SuratPerjanjianKerjaController extends Controller
             $spkList = $this->processSpkData($spkList);
             $singleSpk = $spkList->first();
 
-            // KIRIM KEDUANYA: 'spk' untuk single view & 'spkList' untuk foreach
-            $pdf = Pdf::loadView('spk', [
+            $viewName = view()->exists('pdf.spk') ? 'pdf.spk' : 'spk';
+
+            $pdf = Pdf::loadView($viewName, [
                 'spk' => $singleSpk,
                 'spkList' => $spkList,
             ])->setPaper('a4', 'portrait');
 
-            return $pdf->stream('SPK_' . $singleSpk->id . '.pdf');
+            // UBAH NAMA FILE SINGLE DI SINI
+            $namaFile = 'SPK_' . ($singleSpk->nomor_spk ?? $singleSpk->id) . '.pdf';
+
+            return $pdf->stream($namaFile);
         }
 
         // 2. Cetak Bulk Data berdasarkan parameter ?ids=1,2,3
         if ($request->filled('ids')) {
-            $ids = explode(',', $request->ids);
+            $ids = is_array($request->ids) ? $request->ids : explode(',', $request->ids);
             
             $spkList = SuratPerjanjianKerja::with($relations)
                 ->whereIn('id', $ids)
@@ -91,40 +99,63 @@ class SuratPerjanjianKerjaController extends Controller
             }
 
             $spkList = $this->processSpkData($spkList);
+            $viewName = view()->exists('pdf.spk') ? 'pdf.spk' : 'spk';
 
-            // Send $spk (first item) and $spkList (collection)
-            $pdf = Pdf::loadView('spk', [
+            $pdf = Pdf::loadView($viewName, [
                 'spk' => $spkList->first(),
                 'spkList' => $spkList,
             ])->setPaper('a4', 'portrait');
 
-            return $pdf->stream('SPK_Terpilih_' . time() . '.pdf');
+            // UBAH NAMA FILE BULK TERPILIH DI SINI
+            $namaFile = 'SPK_Terpilih_' . date('Ymd_His') . '.pdf';
+
+            return $pdf->stream($namaFile);
         }
 
         abort(404, 'Parameter ID atau IDs SPK tidak ditemukan.');
     }
 
     /**
-     * Cetak semua PDF berdasarkan filter kegiatan / semua data
+     * Cetak semua PDF (Semua Data / Sesuai Filter)
      */
     public function cetakSemuaPdf(Request $request)
     {
         $relations = $this->getBaseRelations();
         $query = SuratPerjanjianKerja::with($relations);
 
-        $spkList = $query->get();
+        $mode = $request->query('mode', 'semua');
+        $search = $request->query('search');
+
+        // Jika user memilih opsi 'filter' dan ada kata kunci pencarian dari tabel Filament
+        if ($mode === 'filter' && !empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nomor_spk', 'like', "%{$search}%")
+                  ->orWhere('nama_ppk', 'like', "%{$search}%")
+                  ->orWhereHas('pcl', function ($pclQuery) use ($search) {
+                      $pclQuery->where('nama_pcl', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $spkList = $query->latest()->get();
 
         if ($spkList->isEmpty()) {
             return back()->with('error', 'Tidak ada data Surat Perjanjian Kerja yang dapat dicetak.');
         }
 
         $spkList = $this->processSpkData($spkList);
+        $viewName = view()->exists('pdf.spk') ? 'pdf.spk' : 'spk';
 
-        $pdf = Pdf::loadView('spk', [
+        $pdf = Pdf::loadView($viewName, [
             'spk' => $spkList->first(),
             'spkList' => $spkList,
         ])->setPaper('a4', 'portrait');
 
-        return $pdf->stream('SPK_Semua_' . time() . '.pdf');
+        // =========================================================
+        // UBAH NAMA FILE HASIL CETAK SEMUA / BULK PDF DI SINI:
+        // =========================================================
+        $namaFile = 'Surat_Perjanjian_Kerja_Semua_Data.pdf';
+
+        return $pdf->stream($namaFile);
     }
 }
