@@ -8,15 +8,16 @@ use App\Models\Pcl;
 use App\Models\MonitoringSurvey;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Filters\SelectFilter;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\Schema;
+use Carbon\Carbon;
 
 class SuratPerjanjianKerjaResource extends Resource
 {
@@ -37,6 +38,7 @@ class SuratPerjanjianKerjaResource extends Resource
     {
         return $form
             ->schema([
+                // CARD 1: INFORMASI UMUM SPK
                 Forms\Components\Section::make('Informasi Surat Perjanjian Kerja')
                     ->schema([
                         Forms\Components\TextInput::make('nomor_spk')
@@ -52,84 +54,181 @@ class SuratPerjanjianKerjaResource extends Resource
                             ->required()
                             ->maxLength(255),
 
-                        Forms\Components\Select::make('survey_activity_id')
-                            ->label('Pilih Kegiatan')
-                            ->relationship('surveyActivity', 'nama_kegiatan')
-                            ->searchable()
-                            ->preload()
-                            ->required(),
-
                         Forms\Components\DatePicker::make('tanggal_spk')
                             ->label('Tanggal SPK')
                             ->default(now())
                             ->displayFormat('d/m/Y')
                             ->native(false)
                             ->required(),
+                    ])->columns(3),
 
-                        Forms\Components\Textarea::make('uraian_tugas')
-                            ->label('Uraian Tugas')
-                            ->placeholder('Contoh: Pendataan dan Pengambilan Foto Amatan pada Segmen Terpilih')
-                            ->default('Pendataan dan Pengambilan Foto Amatan pada Segmen Terpilih')
-                            ->rows(2)
-                            ->required()
-                            ->columnSpanFull(),
-
-                        Forms\Components\TextInput::make('satuan')
-                            ->label('Satuan')
-                            ->placeholder('Contoh: Segmen')
-                            ->default('Segmen')
-                            ->maxLength(50)
-                            ->required()
-                            ->columnSpanFull(),
-
-                        Forms\Components\TextInput::make('beban_anggaran')
-                            ->label('Beban Anggaran')
-                            ->placeholder('Contoh: 2910.BMA.007.005.521213')
-                            ->maxLength(255)
-                            ->required()
-                            ->columnSpanFull(),
-                    ])->columns(2),
-
-                Forms\Components\Section::make('Jangka Waktu Perjanjian Kerja')
-                    ->description('Tentukan periode awal (tanggal mulai) dan akhir (tanggal selesai) pelaksanaan tugas.')
-                    ->schema([
-                        Forms\Components\DatePicker::make('tanggal_mulai')
-                            ->label('Tanggal Mulai')
-                            ->placeholder('Pilih Tanggal Mulai')
-                            ->displayFormat('d/m/Y')
-                            ->native(false)
-                            ->required(),
-
-                        Forms\Components\DatePicker::make('tanggal_selesai')
-                            ->label('Tanggal Selesai')
-                            ->placeholder('Pilih Tanggal Selesai')
-                            ->displayFormat('d/m/Y')
-                            ->native(false)
-                            ->required(),
-                    ])->columns(2),
-
-                Forms\Components\Section::make('Rincian Alamat Pihak Kedua (PCL)')
+                // CARD 2: PIHAK KEDUA (PCL)
+                Forms\Components\Section::make('Informasi Pihak Kedua (PCL)')
                     ->schema([
                         Forms\Components\Select::make('pcl_id')
                             ->label('Nama PCL (Pihak Kedua)')
-                            ->options(function () {
-                                return Pcl::pluck('nama_pcl', 'id_pcl')->toArray();
-                            })
+                            ->options(fn () => Pcl::pluck('nama_pcl', 'id_pcl')->toArray())
                             ->searchable()
                             ->preload()
                             ->placeholder('Pilih Nama PCL')
+                            ->live()
+                            ->afterStateUpdated(function ($state, Set $set) {
+                                if (!$state) {
+                                    return;
+                                }
+
+                                $pcl = Pcl::where('id_pcl', $state)->first();
+                                
+                                if ($pcl) {
+                                    // Set Alamat PCL
+                                    $alamat = $pcl->alamat ?? $pcl->alamat_pcl ?? '';
+                                    $set('alamat_pcl', $alamat);
+
+                                    // Fix Query Grouping agar data survei tidak tertukar
+                                    $monitorings = MonitoringSurvey::query()
+                                        ->where('nama_pcl', $pcl->nama_pcl)
+                                        ->get();
+
+                                    if ($monitorings->isNotEmpty()) {
+                                        $repeaterItems = [];
+
+                                        foreach ($monitorings as $item) {
+                                            $vol = $item->beban_banyak ?? $item->volume ?? 1;
+                                            $harga = $item->rate_honor ?? $item->harga_satuan ?? 0;
+                                            $namaKegiatan = $item->nama_kegiatan ?? $item->uraian_tugas ?? 'Pencacahan Lapangan';
+                                            
+                                            $tglMulai = $item->tgl_mulai ?? null;
+                                            $tglSelesai = $item->tgl_selesai ?? null;
+                                            $jangkaWaktuText = self::calculateJangkaWaktu($tglMulai, $tglSelesai);
+
+                                            $repeaterItems[] = [
+                                                'uraian_tugas' => $namaKegiatan,
+                                                'tgl_mulai_kegiatan' => $tglMulai,
+                                                'tgl_selesai_kegiatan' => $tglSelesai,
+                                                'jangka_waktu_text' => $jangkaWaktuText,
+                                                'satuan' => $item->satuan ?? 'Dokumen',
+                                                'volume' => $vol,
+                                                'harga_satuan' => $harga,
+                                                'nilai_perjanjian' => $vol * $harga,
+                                                'beban_anggaran' => $item->beban_anggaran ?? '',
+                                            ];
+                                        }
+
+                                        $set('detail_kegiatan', $repeaterItems);
+                                    }
+                                }
+                            })
                             ->required()
                             ->columnSpanFull(),
 
                         Forms\Components\Textarea::make('alamat_pcl')
                             ->label('Alamat Lengkap PCL')
                             ->placeholder('Contoh: RT 001 RW 002 Dusun Karangrejo Desa Karangrejo, Kecamatan Kandat, Kabupaten Kediri')
-                            ->helperText('Isi lengkap rincian RT, RW, Dusun, Desa/Kelurahan, Kecamatan, dan Kabupaten PCL.')
-                            ->rows(3)
+                            ->rows(2)
                             ->required()
+                            ->columnSpanFull(),
+
+                        // TANGGAL PASAL 3
+                        Forms\Components\DatePicker::make('tanggal_mulai_perjanjian')
+                            ->label('Tanggal Mulai Perjanjian (Pasal 3)')
+                            ->placeholder('Pilih Tanggal Mulai')
+                            ->displayFormat('d/m/Y')
+                            ->native(false)
+                            ->required(),
+
+                        Forms\Components\DatePicker::make('tanggal_selesai_perjanjian')
+                            ->label('Tanggal Selesai Perjanjian (Pasal 3)')
+                            ->placeholder('Pilih Tanggal Selesai')
+                            ->displayFormat('d/m/Y')
+                            ->native(false)
+                            ->required(),
+                    ])->columns(2),
+
+                // CARD 3: TABEL LAMPIRAN (REPEATER)
+                Forms\Components\Section::make('Daftar Uraian Tugas & Kegiatan (Tabel Lampiran)')
+                    ->description('Semua kegiatan PCL ditarik otomatis ke tabel di bawah ini. Anda dapat mengedit Uraian Tugas dan memilih Tanggal Kegiatan.')
+                    ->schema([
+                        Forms\Components\Repeater::make('detail_kegiatan')
+                            ->schema([
+                                Forms\Components\TextInput::make('uraian_tugas')
+                                    ->label('Uraian Tugas')
+                                    ->placeholder('Contoh: Pencacahan HK 2 dan 3')
+                                    ->required()
+                                    ->columnSpan(12),
+
+                                Forms\Components\DatePicker::make('tgl_mulai_kegiatan')
+                                    ->label('Tanggal Mulai')
+                                    ->displayFormat('d/m/Y')
+                                    ->native(false)
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(fn (Set $set, Get $get) => self::updateJangkaWaktuText($set, $get))
+                                    ->columnSpan(3),
+
+                                Forms\Components\DatePicker::make('tgl_selesai_kegiatan')
+                                    ->label('Tanggal Selesai')
+                                    ->displayFormat('d/m/Y')
+                                    ->native(false)
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(fn (Set $set, Get $get) => self::updateJangkaWaktuText($set, $get))
+                                    ->columnSpan(3),
+
+                                Forms\Components\TextInput::make('satuan')
+                                    ->label('Satuan')
+                                    ->placeholder('Contoh: Dokumen')
+                                    ->default('Dokumen')
+                                    ->required()
+                                    ->columnSpan(6),
+
+                                Forms\Components\TextInput::make('beban_anggaran')
+                                    ->label('Beban Anggaran')
+                                    ->placeholder('Contoh: 2903.BMA.009.052.A.521213')
+                                    ->required()
+                                    ->columnSpan(12),
+
+                                // HIDDEN FIELDS FOR PDF GENERATION
+                                Forms\Components\Hidden::make('jangka_waktu_text')
+                                    ->dehydrated(),
+                                Forms\Components\Hidden::make('volume')
+                                    ->default(1),
+                                Forms\Components\Hidden::make('harga_satuan')
+                                    ->default(0),
+                                Forms\Components\Hidden::make('nilai_perjanjian')
+                                    ->default(0),
+                            ])
+                            ->columns(12)
+                            ->defaultItems(1)
+                            ->addActionLabel('Tambah Baris Kegiatan Manual')
+                            ->reorderable()
                             ->columnSpanFull(),
                     ]),
             ]);
+    }
+
+    // Helper terpisah untuk menghitung String Jangka Waktu
+    public static function calculateJangkaWaktu(?string $start, ?string $end): string
+    {
+        if (!$start || !$end) {
+            return '';
+        }
+
+        $startDate = Carbon::parse($start);
+        $endDate = Carbon::parse($end);
+
+        if ($startDate->month === $endDate->month && $startDate->year === $endDate->year) {
+            return $startDate->format('j') . ' sd ' . $endDate->isoFormat('D MMMM Y');
+        }
+
+        return $startDate->isoFormat('D MMMM Y') . ' sd ' . $endDate->isoFormat('D MMMM Y');
+    }
+
+    protected static function updateJangkaWaktuText(Set $set, Get $get): void
+    {
+        $start = $get('tgl_mulai_kegiatan');
+        $end = $get('tgl_selesai_kegiatan');
+
+        $set('jangka_waktu_text', self::calculateJangkaWaktu($start, $end));
     }
 
     public static function table(Table $table): Table
@@ -147,68 +246,26 @@ class SuratPerjanjianKerjaResource extends Resource
                     ->sortable()
                     ->default('-'),
 
-                Tables\Columns\TextColumn::make('surveyActivity.nama_kegiatan')
-                    ->label('Nama Survei')
+                // Menggunakan relasi pcl.nama_pcl (Disarankan menambahkan relasi pcl() di Model SuratPerjanjianKerja)
+                // Atau penanganan fallback aman tanpa query terpisah berulang:
+                Tables\Columns\TextColumn::make('pcl.nama_pcl')
+                    ->label('Nama PCL (Pihak Kedua)')
                     ->searchable()
                     ->sortable()
-                    ->default('-'),
+                    ->default(fn (SuratPerjanjianKerja $record) => 
+                        Pcl::where('id_pcl', $record->pcl_id)->value('nama_pcl') ?? '-'
+                    ),
 
-                Tables\Columns\TextColumn::make('nama_pcl_display')
-                    ->label('Nama PCL')
+                Tables\Columns\TextColumn::make('total_kegiatan')
+                    ->label('Jumlah Kegiatan')
                     ->getStateUsing(function (SuratPerjanjianKerja $record) {
-                        if (Schema::hasColumn('surat_perjanjian_kerja', 'pcl_id') && !empty($record->pcl_id)) {
-                            $pclDirect = Pcl::query();
-                            if (Schema::hasColumn('pcls', 'id_pcl')) {
-                                $pclDirect->where('id_pcl', $record->pcl_id);
-                            } else {
-                                $pclDirect->where('id', $record->pcl_id);
-                            }
-                            
-                            $foundPcl = $pclDirect->first();
-                            if ($foundPcl) {
-                                return $foundPcl->nama_pcl;
-                            }
+                        $details = $record->detail_kegiatan;
+
+                        if (is_string($details)) {
+                            $details = json_decode($details, true);
                         }
 
-                        if (!empty($record->survey_activity_id) && Schema::hasTable('monitoring_surveys')) {
-                            $monitoringQuery = MonitoringSurvey::query();
-                            
-                            if (Schema::hasColumn('monitoring_surveys', 'survey_activity_id')) {
-                                $monitoringQuery->where('survey_activity_id', $record->survey_activity_id);
-                            } elseif (Schema::hasColumn('monitoring_surveys', 'kegiatan_id')) {
-                                $monitoringQuery->where('kegiatan_id', $record->survey_activity_id);
-                            } elseif (Schema::hasColumn('monitoring_surveys', 'id_kegiatan')) {
-                                $monitoringQuery->where('id_kegiatan', $record->survey_activity_id);
-                            } else {
-                                return '-';
-                            }
-
-                            $monitoring = $monitoringQuery->first();
-
-                            if ($monitoring && !empty($monitoring->pcl_id)) {
-                                $pclQuery = Pcl::query();
-                                if (Schema::hasColumn('pcls', 'id_pcl')) {
-                                    $pclQuery->where('id_pcl', $monitoring->pcl_id);
-                                } else {
-                                    $pclQuery->where('id', $monitoring->pcl_id);
-                                }
-
-                                $pcl = $pclQuery->first();
-                                return $pcl ? $pcl->nama_pcl : '-';
-                            }
-                        }
-
-                        return '-';
-                    })
-                    ->default('-'),
-
-                Tables\Columns\TextColumn::make('jangka_waktu')
-                    ->label('Jangka Waktu')
-                    ->getStateUsing(function (SuratPerjanjianKerja $record) {
-                        if ($record->tanggal_mulai && $record->tanggal_selesai) {
-                            return $record->tanggal_mulai->translatedFormat('d M Y') . ' s/d ' . $record->tanggal_selesai->translatedFormat('d M Y');
-                        }
-                        return '-';
+                        return is_array($details) ? count($details) . ' Kegiatan' : '0 Kegiatan';
                     }),
 
                 Tables\Columns\TextColumn::make('tanggal_spk')
@@ -217,11 +274,10 @@ class SuratPerjanjianKerjaResource extends Resource
                     ->sortable(),
             ])
             ->filters([
-                SelectFilter::make('survey_activity_id')
-                    ->label('Kegiatan')
-                    ->relationship('surveyActivity', 'nama_kegiatan')
-                    ->searchable()
-                    ->preload(),
+                SelectFilter::make('pcl_id')
+                    ->label('Filter PCL')
+                    ->options(fn () => Pcl::pluck('nama_pcl', 'id_pcl')->toArray())
+                    ->searchable(),
             ])
             ->actions([
                 Action::make('cetak_pdf')

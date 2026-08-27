@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SuratPerjanjianKerja;
-use App\Models\MonitoringSurvey;
+use App\Models\Pcl;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -15,12 +15,7 @@ class SuratPerjanjianKerjaController extends Controller
     private function getBaseRelations(): array
     {
         $relations = [];
-        
         $spkModel = new SuratPerjanjianKerja();
-
-        if (method_exists($spkModel, 'surveyActivity')) {
-            $relations[] = 'surveyActivity';
-        }
 
         if (method_exists($spkModel, 'pcl')) {
             $relations[] = 'pcl';
@@ -30,64 +25,30 @@ class SuratPerjanjianKerjaController extends Controller
     }
 
     /**
-     * Helper privat untuk melengkapi data SPK dengan data survei (monitoring_data).
-     * Menggunakan matching presisi (Nama PCL + Kegiatan + Bulan) untuk mencegah bentrok nama yang sama.
+     * Helper privat untuk melengkapi data SPK dan parse array detail_kegiatan
      */
-    private function attachMonitoringData($spkCollection)
+    private function processSpkData($spkCollection)
     {
         return $spkCollection->map(function ($spk) {
-            // 1. Ambil Nama Kegiatan
-            $namaKegiatan = $spk->surveyActivity?->nama_kegiatan ?? null;
+            // 1. Ambil Nama & Alamat PCL
+            $pcl = $spk->pcl ?? Pcl::where('id_pcl', $spk->pcl_id)->first();
+            $spk->nama_pcl_formatted = $pcl?->nama_pcl ?? ($spk->nama_pcl ?? '-');
+            $spk->alamat_pcl_formatted = $spk->alamat_pcl ?? ($pcl?->alamat ?? '-');
 
-            // 2. Ambil Nama PCL dari Relasi PCL (Prioritas Utama) atau Atribut SPK
-            $namaPcl = $spk->pcl?->nama_pcl !== '-' 
-                ? $spk->pcl?->nama_pcl 
-                : ($spk->pcl?->nama ?? $spk->nama_pcl ?? null);
+            // 2. Format / Decode detail_kegiatan dari Repeater Filament
+            $details = is_array($spk->detail_kegiatan)
+                ? $spk->detail_kegiatan
+                : json_decode($spk->detail_kegiatan ?? '[]', true);
 
-            // 3. Ambil Periode Bulan dari tanggal_spk
-            $bulanSpk = $spk->tanggal_spk 
-                ? \Carbon\Carbon::parse($spk->tanggal_spk)->translatedFormat('F') 
-                : null;
+            // 3. Hitung total nilai perjanjian untuk tabel lampiran
+            $totalNilai = collect($details)->sum(function ($item) {
+                $vol = (float) ($item['volume'] ?? 1);
+                $harga = (float) ($item['harga_satuan'] ?? 0);
+                return (float) ($item['nilai_perjanjian'] ?? ($vol * $harga));
+            });
 
-            // Query presisi ke tabel monitoring_surveys
-            $monitoring = MonitoringSurvey::query()
-                // Filter Nama PCL (Exact Match / Persis untuk menghindari kecocokan parsial)
-                ->when($namaPcl && $namaPcl !== '-', function ($q) use ($namaPcl) {
-                    $q->where('nama_pcl', trim($namaPcl));
-                })
-                // Filter Nama Kegiatan
-                ->when($namaKegiatan, function ($q) use ($namaKegiatan) {
-                    $q->where('nama_kegiatan', $namaKegiatan);
-                })
-                // Filter Bulan SPK
-                ->when($bulanSpk, function ($q) use ($bulanSpk) {
-                    $q->where('bulan', 'LIKE', '%' . $bulanSpk . '%');
-                })
-                ->first();
-
-            // Fallback 1: Jika tidak ketemu dengan filter Bulan, cari berdasarkan Kegiatan & Exact Nama PCL
-            if (!$monitoring && $namaPcl) {
-                $monitoring = MonitoringSurvey::query()
-                    ->where('nama_pcl', trim($namaPcl))
-                    ->when($namaKegiatan, function ($q) use ($namaKegiatan) {
-                        $q->where('nama_kegiatan', $namaKegiatan);
-                    })
-                    ->first();
-            }
-
-            // Fallback 2: Jika exact match gagal (misal ada spasi berlebih), gunakan toleransi LIKE
-            if (!$monitoring && $namaPcl) {
-                $monitoring = MonitoringSurvey::query()
-                    ->where('nama_pcl', 'LIKE', '%' . trim($namaPcl) . '%')
-                    ->when($namaKegiatan, function ($q) use ($namaKegiatan) {
-                        $q->where('nama_kegiatan', $namaKegiatan);
-                    })
-                    ->first();
-            }
-
-            // Inject object monitoring ke dalam atribut spk
-            $spk->setRelation('monitoring_data', $monitoring);
-            $spk->setRelation('monitoringData', $monitoring);
+            $spk->parsed_detail_kegiatan = $details;
+            $spk->total_nilai_perjanjian = $totalNilai;
 
             return $spk;
         });
@@ -105,12 +66,16 @@ class SuratPerjanjianKerjaController extends Controller
             $spk = SuratPerjanjianKerja::with($relations)->findOrFail($request->id);
             
             $spkList = collect([$spk]);
-            $spkList = $this->attachMonitoringData($spkList);
+            $spkList = $this->processSpkData($spkList);
+            $singleSpk = $spkList->first();
 
-            $pdf = Pdf::loadView('spk', compact('spkList'))
-                ->setPaper('a4', 'portrait');
+            // KIRIM KEDUANYA: 'spk' untuk single view & 'spkList' untuk foreach
+            $pdf = Pdf::loadView('spk', [
+                'spk' => $singleSpk,
+                'spkList' => $spkList,
+            ])->setPaper('a4', 'portrait');
 
-            return $pdf->stream('SPK_' . $spk->id . '.pdf');
+            return $pdf->stream('SPK_' . $singleSpk->id . '.pdf');
         }
 
         // 2. Cetak Bulk Data berdasarkan parameter ?ids=1,2,3
@@ -125,10 +90,13 @@ class SuratPerjanjianKerjaController extends Controller
                 abort(404, 'Data SPK terpilih tidak ditemukan.');
             }
 
-            $spkList = $this->attachMonitoringData($spkList);
+            $spkList = $this->processSpkData($spkList);
 
-            $pdf = Pdf::loadView('spk', compact('spkList'))
-                ->setPaper('a4', 'portrait');
+            // Send $spk (first item) and $spkList (collection)
+            $pdf = Pdf::loadView('spk', [
+                'spk' => $spkList->first(),
+                'spkList' => $spkList,
+            ])->setPaper('a4', 'portrait');
 
             return $pdf->stream('SPK_Terpilih_' . time() . '.pdf');
         }
@@ -137,20 +105,12 @@ class SuratPerjanjianKerjaController extends Controller
     }
 
     /**
-     * Cetak semua PDF berdasarkan filter kegiatan
+     * Cetak semua PDF berdasarkan filter kegiatan / semua data
      */
     public function cetakSemuaPdf(Request $request)
     {
-        $namaKegiatan = $request->query('nama_kegiatan');
         $relations = $this->getBaseRelations();
-
         $query = SuratPerjanjianKerja::with($relations);
-
-        if ($namaKegiatan) {
-            $query->whereHas('surveyActivity', function ($q) use ($namaKegiatan) {
-                $q->where('nama_kegiatan', $namaKegiatan);
-            });
-        }
 
         $spkList = $query->get();
 
@@ -158,10 +118,12 @@ class SuratPerjanjianKerjaController extends Controller
             return back()->with('error', 'Tidak ada data Surat Perjanjian Kerja yang dapat dicetak.');
         }
 
-        $spkList = $this->attachMonitoringData($spkList);
+        $spkList = $this->processSpkData($spkList);
 
-        $pdf = Pdf::loadView('spk', compact('spkList', 'namaKegiatan'))
-            ->setPaper('a4', 'portrait');
+        $pdf = Pdf::loadView('spk', [
+            'spk' => $spkList->first(),
+            'spkList' => $spkList,
+        ])->setPaper('a4', 'portrait');
 
         return $pdf->stream('SPK_Semua_' . time() . '.pdf');
     }

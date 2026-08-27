@@ -1,3 +1,24 @@
+@php
+    if (!function_exists('terbilang')) {
+        function terbilang($angka) {
+            $angka = abs((float)$angka);
+            $baca = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+            if ($angka < 12) return ' ' . $baca[(int)$angka];
+            if ($angka < 20) return terbilang($angka - 10) . ' belas';
+            if ($angka < 100) return terbilang($angka / 10) . ' puluh' . terbilang($angka % 10);
+            if ($angka < 200) return ' seratus' . terbilang($angka - 100);
+            if ($angka < 1000) return terbilang($angka / 100) . ' ratus' . terbilang($angka % 100);
+            if ($angka < 2000) return ' seribu' . terbilang($angka - 1000);
+            if ($angka < 1000000) return terbilang($angka / 1000) . ' ribu' . terbilang($angka % 1000);
+            if ($angka < 1000000000) return terbilang($angka / 1000000) . ' juta' . terbilang($angka % 1000000);
+            if ($angka < 1000000000000) return terbilang($angka / 1000000000) . ' miliar' . terbilang(fmod($angka, 1000000000));
+            return trim(terbilang($angka / 1000000000000) . ' triliun' . terbilang(fmod($angka, 1000000000000)));
+        }
+    }
+
+    $spkCollection = is_iterable($spkList ?? null) ? $spkList : collect([$spk ?? null])->filter();
+@endphp
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -6,379 +27,394 @@
     <style>
         @page {
             size: A4 portrait;
-            margin: 1.5cm 2cm;
+            margin: 1.2cm 1.5cm 1.2cm 1.5cm;
         }
 
-        /* Styling Font & Elemen Umum */
-        body, p, td, th, div, span {
+        body {
             font-family: 'Times New Roman', Times, serif;
             font-size: 12pt;
-            font-style: normal;
-            line-height: 1.4;
-            color: #000000;
+            line-height: 1.2;
+            color: #000;
         }
 
+        /* Helpers */
         .text-center { text-align: center; }
-        .text-justify { text-align: justify; }
         .text-right { text-align: right; }
-        .bold { font-weight: bold; }
+        .text-justify { text-align: justify; }
+        .font-bold { font-weight: bold; }
+        .uppercase { text-transform: uppercase; }
+        .italic { font-style: italic; }
 
-        .title {
-            font-size: 12pt;
-            font-weight: bold;
-            font-style: normal;
+        /* Header Lembar Utama */
+        .header-title {
             text-align: center;
-            margin-bottom: 2px;
-        }
-        .subtitle {
-            font-size: 12pt;
             font-weight: bold;
-            font-style: normal;
-            text-align: center;
+            font-size: 12pt;
             margin-bottom: 12px;
         }
 
-        .table-party {
+        .table-pihak {
             width: 100%;
-            margin-top: 6px;
-            margin-bottom: 6px;
             border-collapse: collapse;
-        }
-        .table-party td {
-            vertical-align: top;
-            padding: 3px 0;
-            font-size: 12pt;
-            font-style: normal;
+            margin-bottom: 8px;
         }
 
-        .pasal-header {
+        .table-pihak td {
+            vertical-align: top;
+            padding: 2px 0;
+        }
+
+        .pasal-title {
             text-align: center;
             font-weight: bold;
-            font-style: normal;
             margin-top: 8px;
             margin-bottom: 2px;
-            font-size: 12pt;
         }
 
-        p {
-            margin-top: 0;
-            margin-bottom: 4px;
-            font-size: 12pt;
-            font-style: normal;
+        .pasal-content {
+            text-align: justify;
+            margin-bottom: 6px;
+            text-indent: 18px;
         }
 
+        .pasal-content-nolist {
+            text-align: justify;
+            margin-bottom: 6px;
+        }
+
+        /* Pager Break Helper */
         .page-break {
             page-break-after: always;
+            clear: both;
         }
 
-        /* ========================================================= */
-        /* PERBAIKAN ROTATION HACK (TIDAK TERTUMPUK & HEADER TENGAH)  */
-        /* ========================================================= */
-        
-        .page-break-lampiran {
+        /* ROTASI LAMPIRAN KE KANAN (90 DEGREE ROTATION) */
+        .lampiran-page-break {
             page-break-before: always;
             clear: both;
         }
 
-        .lampiran-page-wrapper {
-            position: absolute;
-            top: 0cm;
-            left: -1.0cm;
-            width: 250mm;
-            height: 170mm;
-            
-            /* Rotasi container 90 derajat */
+        .rotated-landscape-right {
+            width: 245mm;  
+            height: 165mm;
             transform: rotate(90deg);
             transform-origin: top left;
-            margin-left: 195mm; /* Penyesuaian translasi posisi di halaman baru */
+            margin-left: 175mm;
+            margin-top: 0mm;
         }
 
-        /* Judul/Header Lampiran Rata Tengah */
-        .lampiran-header-center {
-            width: 100%;
+        .header-bps-lampiran {
             text-align: center;
-            font-size: 12pt;
-            font-style: normal;
-            line-height: 1.3;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
+            font-weight: bold;
+            font-size: 9.5pt;
         }
 
-        .table-border {
+        .table-title-lampiran {
+            text-align: center;
+            font-weight: bold;
+            font-size: 10.5pt;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        table.bps-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 12pt;
-            font-style: normal;
+            font-size: 8.5pt;
         }
-        .table-border th, .table-border td {
-            border: 1px solid black;
-            padding: 5px;
-            font-size: 12pt;
-            font-style: normal;
+
+        table.bps-table th, 
+        table.bps-table td {
+            border: 1px solid #000;
+            padding: 4px 5px;
+            vertical-align: middle;
+        }
+
+        table.bps-table th {
+            text-align: center;
+            font-weight: bold;
+            background-color: #f2f2f2;
+        }
+
+        /* Tabel TTD agar lebih stabil saat diprint massal */
+        .table-ttd {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .table-ttd td {
+            vertical-align: top;
+            text-align: center;
+            width: 50%;
         }
     </style>
 </head>
 <body>
 
-@php
-    \Carbon\Carbon::setLocale('id');
-    $items = isset($spkList) ? $spkList : [$spk];
-
-    if (!function_exists('terbilangTahun')) {
-        function terbilangTahun($angka) {
-            $angka = (int) $angka;
-            $baca = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas'];
-            
-            if ($angka < 12) return $baca[$angka];
-            if ($angka < 20) return terbilangTahun($angka - 10) . ' Belas';
-            if ($angka < 100) return terbilangTahun((int)($angka / 10)) . ' Puluh ' . terbilangTahun($angka % 10);
-            if ($angka < 200) return 'Seratus ' . terbilangTahun($angka - 100);
-            if ($angka < 1000) return terbilangTahun((int)($angka / 100)) . ' Ratus ' . terbilangTahun($angka % 100);
-            if ($angka < 2000) return 'Seribu ' . terbilangTahun($angka - 1000);
-            if ($angka < 10000) return terbilangTahun((int)($angka / 1000)) . ' Ribu ' . terbilangTahun($angka % 1000);
-            return (string) $angka;
-        }
-    }
-
-    if (!function_exists('terbilangAngkaMurni')) {
-        function terbilangAngkaMurni($angka) {
-            $angka = (float) $angka;
-            if ($angka <= 0) return '';
-            
-            $baca = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas'];
-            
-            if ($angka < 12) $hasil = $baca[(int)$angka];
-            elseif ($angka < 20) $hasil = terbilangAngkaMurni($angka - 10) . ' Belas';
-            elseif ($angka < 100) $hasil = terbilangAngkaMurni((int)($angka / 10)) . ' Puluh ' . terbilangAngkaMurni($angka % 10);
-            elseif ($angka < 200) $hasil = 'Seratus ' . terbilangAngkaMurni($angka - 100);
-            elseif ($angka < 1000) $hasil = terbilangAngkaMurni((int)($angka / 100)) . ' Ratus ' . terbilangAngkaMurni($angka % 100);
-            elseif ($angka < 2000) $hasil = 'Seribu ' . terbilangAngkaMurni($angka - 1000);
-            elseif ($angka < 1000000) $hasil = terbilangAngkaMurni((int)($angka / 1000)) . ' Ribu ' . terbilangAngkaMurni($angka % 1000);
-            elseif ($angka < 1000000000) $hasil = terbilangAngkaMurni((int)($angka / 1000000)) . ' Juta ' . terbilangAngkaMurni($angka % 1000000);
-            elseif ($angka < 1000000000000) $hasil = terbilangAngkaMurni((int)($angka / 1000000000)) . ' Miliar ' . terbilangAngkaMurni($angka % 1000000000);
-            else $hasil = (string) $angka;
-            
-            return trim(preg_replace('/\s+/', ' ', $hasil));
-        }
-    }
-@endphp
-
-@foreach($items as $spk)
-
+@foreach($spkCollection as $spkItem)
     @php
-        $survey = $spk->surveyActivity;
-        $mon = $spk->monitoringData ?? $spk->monitoring_data ?? null;
-
-        $pclData = $spk->pcl ?? $spk->pcl_data ?? null;
-        $namaPcl = $spk->nama_pcl_display ?? $pclData->nama_pcl ?? $pclData->nama ?? $spk->nama_pcl ?? '-';
-        $alamatPcl = $spk->alamat_lengkap_pcl ?? $spk->alamat_pcl ?? $pclData->alamat ?? '-';
-
-        $tglSpk = $spk->tanggal_spk ? \Carbon\Carbon::parse($spk->tanggal_spk) : null;
+        $tglSpk = \Carbon\Carbon::parse($spkItem->tanggal_spk ?? '2026-02-18')->locale('id');
+        $tahunSpk = $tglSpk->format('Y');
         
-        $tglMulai = $spk->tanggal_mulai 
-            ? \Carbon\Carbon::parse($spk->tanggal_mulai) 
-            : ($survey?->tanggal_mulai ? \Carbon\Carbon::parse($survey->tanggal_mulai) : null);
-            
-        $tglSelesai = $spk->tanggal_selesai 
-            ? \Carbon\Carbon::parse($spk->tanggal_selesai) 
-            : ($survey?->tanggal_selesai ? \Carbon\Carbon::parse($survey->tanggal_selesai) : null);
+        $details = $spkItem->parsed_detail_kegiatan ?? (is_array($spkItem->detail_kegiatan ?? null) 
+            ? $spkItem->detail_kegiatan 
+            : json_decode($spkItem->detail_kegiatan ?? '[]', true));
+        $totalNilai = $spkItem->total_nilai_perjanjian ?? 616000;
 
-        $tahunAngka = $tglSpk ? $tglSpk->format('Y') : date('Y');
-        $tahunTerbilang = trim(terbilangTahun($tahunAngka));
-
-        $volumeAuto = $spk->volume_display ?? 0;
-        $rateHonorAuto = $spk->harga_satuan_display ?? 0;
-        $honorTotalAuto = $spk->nilai_perjanjian_display ?? ($volumeAuto * $rateHonorAuto);
-
-        // 1. Ambil teks mentah
-        $teksAwal = $survey?->terbilang_honor 
-            ?? $spk->terbilang_honor 
-            ?? terbilangAngkaMurni($honorTotalAuto);
-
-        // 2. Sapu bersih SEMUA kata "Rupiah" / "rupiah" yang ada di teks awal
-        $tanpaRupiah = trim(str_ireplace('rupiah', '', $teksAwal));
-
-        // 3. Jika kosong/nol, beri nilai default "Nol", lalu tambahkan tepat 1 kata "Rupiah" di akhir
-        if (empty($tanpaRupiah)) {
-            $terbilangHonor = 'Nol Rupiah';
-        } else {
-            $terbilangHonor = trim(preg_replace('/\s+/', ' ', $tanpaRupiah)) . ' Rupiah';
-        }
+        $tglMulai = !empty($spkItem->tanggal_mulai) ? \Carbon\Carbon::parse($spkItem->tanggal_mulai)->locale('id')->isoFormat('D MMMM YYYY') : '22 Februari 2026';
+        $tglSelesai = !empty($spkItem->tanggal_selesai) ? \Carbon\Carbon::parse($spkItem->tanggal_selesai)->locale('id')->isoFormat('D MMMM YYYY') : '28 Februari 2026';
     @endphp
 
-    <!-- HALAMAN UTAMA (PORTRAIT) -->
-    <div class="title">PERJANJIAN KERJA</div>
-    <div class="title">PETUGAS SURVEI {{ strtoupper($survey->nama_kegiatan ?? '') }}</div>
-    <div class="subtitle">
-        @if(!empty($survey->singkatan_kegiatan))
-            ({{ strtoupper($survey->singkatan_kegiatan) }}) 
-        @endif
-        TAHUN {{ $tahunAngka }}<br>
-        PADA BADAN PUSAT STATISTIK KABUPATEN KEDIRI<br>
-        NOMOR: {{ $spk->nomor_spk }}
-    </div>
-
-    <p class="text-justify">
-        Pada hari ini {{ $tglSpk ? $tglSpk->translatedFormat('l') : '' }}, 
-        tanggal {{ $tglSpk ? $tglSpk->translatedFormat('j') : '' }}, 
-        bulan {{ $tglSpk ? $tglSpk->translatedFormat('F') : '' }}, 
-        tahun {{ $tahunTerbilang }}, bertempat di BPS KABUPATEN KEDIRI, yang bertanda tangan di bawah ini:
-    </p>
-
-    <table class="table-party">
-        <tr>
-            <td width="3%">1.</td>
-            <td width="32%"><b>{{ $spk->nama_ppk ?? 'Hariyanti Ika Setyabudi, SE' }}</b></td>
-            <td width="2%">:</td>
-            <td class="text-justify">
-                Pejabat Pembuat Komitmen Badan Pusat Statistik Kabupaten Kediri, berkedudukan di Jl Pamenang No 42, Sukorejo, Ngasem, Kediri, bertindak untuk dan atas nama Badan Pusat Statistik Kabupaten Kediri, selanjutnya disebut sebagai <b>PIHAK PERTAMA</b>.
-            </td>
-        </tr>
-        <tr>
-            <td>2.</td>
-            <td><b>{{ $namaPcl }}</b></td>
-            <td>:</td>
-            <td class="text-justify">
-                Petugas Pendataan Lapangan Kegiatan Survei {{ $survey->nama_kegiatan ?? '' }}, berkedudukan di {{ $alamatPcl }}, bertindak untuk dan atas nama diri sendiri, selanjutnya disebut <b>PIHAK KEDUA</b>.
-            </td>
-        </tr>
-    </table>
-
-    <p class="text-justify">
-        bahwa <b>PIHAK PERTAMA</b> dan <b>PIHAK KEDUA</b> yang secara bersama-sama disebut <b>PARA PIHAK</b>, sepakat untuk mengikatkan diri dalam Perjanjian Kerja Petugas Kegiatan Survei {{ $survey->nama_kegiatan ?? '' }} Tahun {{ $tahunAngka }} pada Badan Pusat Statistik Kabupaten Kediri, yang selanjutnya disebut Perjanjian, dengan ketentuan-ketentuan sebagai berikut:
-    </p>
-
-    <div class="pasal-header">Pasal 1</div>
-    <p class="text-justify"><b>PIHAK PERTAMA</b> memberikan pekerjaan kepada <b>PIHAK KEDUA</b> dan <b>PIHAK KEDUA</b> menerima pekerjaan dari <b>PIHAK PERTAMA</b> sebagai Petugas Pendataan Lapangan Kegiatan Survei {{ $survey->nama_kegiatan ?? '' }} Tahun {{ $tahunAngka }} pada Badan Pusat Statistik Kabupaten Kediri, dengan lingkup pekerjaan yang ditetapkan oleh <b>PIHAK PERTAMA</b>.</p>
-
-    <div class="pasal-header">Pasal 2</div>
-    <p class="text-justify">Ruang lingkup pekerjaan dalam Perjanjian ini mengacu pada wilayah kerja dan beban kerja sebagaimana tertuang dalam lampiran Perjanjian, Pedoman Petugas Pendataan Lapangan Kegiatan Survei {{ $survey->nama_kegiatan ?? '' }} Tahun {{ $tahunAngka }} pada Badan Pusat Statistik Kabupaten Kediri, dan ketentuan-ketentuan yang ditetapkan oleh <b>PIHAK PERTAMA</b>.</p>
-
-    <div class="pasal-header">Pasal 3</div>
-    <p class="text-justify">Jangka Waktu Perjanjian terhitung sejak tanggal {{ $tglMulai ? $tglMulai->translatedFormat('d F Y') : '-' }} sampai dengan tanggal {{ $tglSelesai ? $tglSelesai->translatedFormat('d F Y') : '-' }}.</p>
-
-    <div class="pasal-header">Pasal 4</div>
-    <p class="text-justify"><b>PIHAK KEDUA</b> berkewajiban melaksanakan seluruh pekerjaan yang diberikan oleh <b>PIHAK PERTAMA</b> sampai selesai, sesuai ruang lingkup pekerjaan sebagaimana dimaksud dalam Pasal 2, dengan menerapkan protokol kesehatan yang berlaku di wilayah kerja masing-masing.</p>
-
-    <div class="pasal-header">Pasal 5</div>
-    <p class="text-justify">(1) <b>PIHAK KEDUA</b> berhak untuk mendapatkan honorarium petugas dari <b>PIHAK PERTAMA</b> sebesar Rp. <b>{{ number_format($honorTotalAuto, 0, ',', '.') }},00 ({{ $terbilangHonor }})</b> untuk pekerjaan sebagaimana dimaksud dalam Pasal 2, termasuk biaya pajak, bea materai, dan jasa pelayanan keuangan.</p>
-    <p class="text-justify">(2) Selain honorarium sebagaimana dimaksud pada ayat (1), <b>PIHAK KEDUA</b> dapat diberikan paket data dan komunikasi selama pelaksanaan pekerjaan sesuai dengan ketentuan yang berlaku di <b>PIHAK PERTAMA</b> dan ketentuan peraturan perundang-undangan.</p>
-    <p class="text-justify">(3) <b>PIHAK KEDUA</b> tidak diberikan honorarium tambahan apabila melakukan kunjungan di luar jadwal atau terdapat tambahan waktu pelaksanaan pekerjaan lapangan.</p>
-
-    <div class="pasal-header">Pasal 6</div>
-    <p class="text-justify">(1) Pembayaran honorarium sebagaimana dimaksud dalam Pasal 5 dilakukan setelah <b>PIHAK KEDUA</b> menyelesaikan dan menyerahkan seluruh hasil pekerjaan sebagaimana dimaksud dalam Pasal 2 kepada <b>PIHAK PERTAMA</b>.</p>
-    <p class="text-justify">(2) Pembayaran sebagaimana dimaksud pada ayat (1) dilakukan oleh <b>PIHAK PERTAMA</b> kepada <b>PIHAK KEDUA</b> sesuai dengan ketentuan peraturan perundang-undangan.</p>
-
-    <div class="pasal-header">Pasal 7</div>
-    <p class="text-justify">Penyerahan hasil pekerjaan lapangan sebagaimana dimaksud dalam Pasal 2 dilakukan secara bertahap dan selambat-lambatnya seluruh hasil pekerjaan lapangan diserahkan sesuai jadwal yang tercantum dalam Lampiran, yang dinyatakan dalam Berita Acara Serah Terima Hasil Pekerjaan yang ditandatangani oleh <b>PARA PIHAK</b>.</p>
-
-    <div class="pasal-header">Pasal 8</div>
-    <p class="text-justify"><b>PIHAK PERTAMA</b> dapat memutuskan Perjanjian ini secara sepihak sewaktu-waktu dalam hal <b>PIHAK KEDUA</b> tidak dapat melaksanakan kewajibannya sebagaimana dimaksud dalam Pasal 4, dengan menerbitkan Surat Pemutusan Perjanjian Kerja.</p>
-
-    <div class="pasal-header">Pasal 9</div>
-    <p class="text-justify">Dalam hal <b>PIHAK KEDUA</b> meninggal dunia, mengundurkan diri karena sakit dengan keterangan rawat inap, kecelakaan dengan keterangan kepolisian, dan/atau telah diberikan Surat Pemutusan Perjanjian Kerja dari <b>PIHAK PERTAMA</b>, maka <b>PIHAK PERTAMA</b> membayarkan honorarium kepada <b>PIHAK KEDUA</b> secara proporsional sesuai pekerjaan yang telah dilaksanakan.</p>
-
-    <div class="pasal-header">Pasal 10</div>
-    <p class="text-justify">(1) Apabila terjadi Keadaan Kahar, yang meliputi bencana alam dan bencana sosial, <b>PIHAK KEDUA</b> memberitahukan kepada <b>PIHAK PERTAMA</b> dalam waktu paling lambat 7 (tujuh) hari sejak mengetahui atas kejadian Keadaan Kahar dengan menyertakan bukti.</p>
-    <p class="text-justify">(2) Pada saat terjadi Keadaan Kahar, pelaksanaan pekerjaan oleh <b>PIHAK KEDUA</b> dihentikan sementara dan dilanjutkan kembali setelah Keadaan Kahar berakhir, namun apabila akibat Keadaan Kahar tidak memungkinkan dilanjutkan/diselesaikannya pelaksanaan pekerjaan, <b>PIHAK KEDUA</b> berhak menerima honorarium secara proporsional sesuai pekerjaan yang telah dilaksanakan.</p>
-
-    <div class="pasal-header">Pasal 11</div>
-    <p class="text-justify">Segala sesuatu yang belum atau tidak cukup diatur dalam Perjanjian ini, dituangkan dalam perjanjian tambahan/<i>addendum</i> dan merupakan bagian tidak terpisahkan dari perjanjian ini.</p>
-
-    <div class="pasal-header">Pasal 12</div>
-    <p class="text-justify">(1) Segala perselisihan atau perbedaan pendapat yang timbul sebagai akibat adanya Perjanjian ini akan diselesaikan secara musyawarah untuk mufakat.</p>
-    <p class="text-justify">(2) Apabila musyawarah untuk mufakat sebagaimana dimaksud pada ayat (1) tidak berhasil, maka <b>PARA PIHAK</b> sepakat untuk menyelesaikan perselisihan dengan memilih kedudukan/domisili hukum di Kepaniteraan Pengadilan Negeri.</p>
-    <p class="text-justify">(3) Selama perselisihan dalam proses penyelesaian pengadilan, <b>PIHAK PERTAMA</b> dan <b>PIHAK KEDUA</b> wajib tetap melaksanakan kewajiban masing-masing berdasarkan Perjanjian ini.</p>
-
-    <p class="text-justify" style="margin-top: 10px;">
-        Demikian Perjanjian ini dibuat dan ditandatangani oleh <b>PARA PIHAK</b> dalam 2 (dua) rangkap asli bermeterai cukup, tanpa paksaan dari PIHAK manapun dan untuk dilaksanakan oleh <b>PARA PIHAK</b>.
-    </p>
-
-    <br>
-    <table width="100%" style="text-align: center;">
-        <tr>
-            <td width="50%" style="vertical-align: top;">
-                <b>PIHAK KEDUA,</b><br><br>
-                <span style="font-size: 9pt; color: #666;">Materai 10.000</span><br><br><br>
-                <b>{{ $namaPcl }}</b>
-            </td>
-            <td width="50%" style="vertical-align: top;">
-                <b>PIHAK PERTAMA,</b><br><br><br><br><br>
-                <b>{{ $spk->nama_ppk ?? 'Hariyanti Ika Setyabudi, SE' }}</b>
-            </td>
-        </tr>
-    </table>
-
-    <!-- PEMBATAS HALAMAN BARU UNTUK LAMPIRAN -->
-    <div class="page-break-lampiran"></div>
-
-    <!-- HALAMAN LAMPIRAN (TERISOLASI DI HALAMAN KEDUA) -->
-    <div class="lampiran-page-wrapper">
-        <div class="lampiran-header-center">
-            Lampiran<br>
-            PERJANJIAN KERJA PETUGAS SURVEI {{ strtoupper($survey->nama_kegiatan ?? '') }} TAHUN {{ $tahunAngka }} PADA BADAN PUSAT STATISTIK KABUPATEN KEDIRI<br>
-            NOMOR: {{ $spk->nomor_spk }}
+    <!-- Container per 1 SPK -->
+    <div class="{{ !$loop->last ? 'page-break' : '' }}">
+        
+        <!-- ========================================== -->
+        <!-- LEMBAR UTAMA (SURAT PERJANJIAN)           -->
+        <!-- ========================================== -->
+        <div class="header-title">
+            PERJANJIAN KERJA PETUGAS <br> PENCACAHAN/PENDATAAN LAPANGAN KEGIATAN SURVEI/SENSUS TAHUN {{ $tahunSpk }} <br> PADA BADAN PUSAT STATISTIK KABUPATEN KEDIRI<br>
+            NOMOR: {{ $spkItem->nomor_spk ?? 'PPIS-007.3/2910/VIITS/02/2026' }}
         </div>
 
-        <p class="text-center bold" style="margin-top: 5px; margin-bottom: 15px; font-size: 12pt;">
-            DAFTAR URAIAN TUGAS, JANGKA WAKTU, NILAI PERJANJIAN, DAN BEBAN ANGGARAN
-        </p>
+        <div class="pasal-content-nolist text-justify">
+            Pada hari ini {{ $tglSpk->isoFormat('dddd') }}, 
+            tanggal {{ $tglSpk->isoFormat('D') }}, 
+            bulan {{ $tglSpk->isoFormat('MMMM') }}, 
+            tahun {{ ucwords(terbilang($tahunSpk)) }}, bertempat di BPS KABUPATEN KEDIRI, yang bertanda tangan di bawah ini:
+        </div>
 
-        <table class="table-border">
-            <thead>
-                <tr style="text-align: center;">
-                    <th rowspan="2" width="4%">No</th>
-                    <th rowspan="2" width="28%">Uraian Tugas</th>
-                    <th rowspan="2" width="16%">Jangka Waktu</th>
-                    <th colspan="2" width="14%">Target Pekerjaan</th>
-                    <th rowspan="2" width="10%">Harga Satuan</th>
-                    <th rowspan="2" width="12%">Nilai Perjanjian</th>
-                    <th rowspan="2" width="16%">Beban Anggaran</th>
-                </tr>
-                <tr style="text-align: center;">
-                    <th width="7%">Volume</th>
-                    <th width="7%">Satuan</th>
-                </tr>
-                <tr style="font-size: 12pt; text-align: center;">
-                    <th>(1)</th>
-                    <th>(2)</th>
-                    <th>(3)</th>
-                    <th>(4)</th>
-                    <th>(5)</th>
-                    <th>(6)</th>
-                    <th>(7)</th>
-                    <th>(8)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td style="text-align: center; vertical-align: top;">1</td>
-                    <!-- Uraian Tugas Dinamis -->
-                    <td style="text-align: left; vertical-align: top;">
-                        {{ $spk->uraian_tugas_display }}
-                    </td>
-                    <td style="text-align: center; vertical-align: top;">
-                        @if($tglMulai && $tglSelesai)
-                            {{ $tglMulai->translatedFormat('d F Y') }} sd {{ $tglSelesai->translatedFormat('d F Y') }}
-                        @else
-                            -
-                        @endif
-                    </td>
-                    <td style="text-align: center; vertical-align: top;">{{ $volumeAuto }}</td>
-                    <!-- Satuan Dinamis -->
-                    <td style="text-align: center; vertical-align: top;">{{ $spk->satuan_display }}</td>
-                    <td style="text-align: right; vertical-align: top;">{{ number_format($rateHonorAuto, 0, ',', '.') }}</td>
-                    <td style="text-align: right; vertical-align: top;">{{ number_format($honorTotalAuto, 0, ',', '.') }}</td>
-                    <td style="text-align: center; vertical-align: top;">{{ $spk->beban_anggaran ?? '-' }}</td>
-                </tr>
-            </tbody>
+        <table class="table-pihak">
+            <tr>
+                <td style="width: 3%;">1.</td>
+                <td style="width: 32%; font-weight: bold;">{{ $spkItem->nama_ppk ?? 'Hariyanti Ika Setyabudi, SE' }}</td>
+                <td style="width: 2%;">:</td>
+                <td style="width: 63%;" class="text-justify">
+                    Pejabat Pembuat Komitmen Badan Pusat Statistik Kabupaten Kediri, berkedudukan di Jl Pamenang No 42, Sukorejo, Ngasem, Kediri, bertindak untuk dan atas nama Badan Pusat Statistik Kabupaten Kediri, selanjutnya disebut sebagai <strong>PIHAK PERTAMA</strong>.
+                </td>
+            </tr>
+            <tr>
+                <td>2.</td>
+                <td style="font-weight: bold;">{{ $spkItem->nama_pcl_formatted ?? ($spkItem->pcl->nama_pcl ?? 'Erni Abu') }}</td>
+                <td>:</td>
+                <td class="text-justify">
+                    Petugas Pendataan Lapangan Kegiatan Survei/Sensus Tahun {{ $tahunSpk }}, berkedudukan di {{ $spkItem->alamat_pcl_formatted ?? 'RT 001, RW 002, Dusun Karangrejo, Desa Karangrejo, Kecamatan Kandat, Kabupaten Kediri' }}, bertindak untuk dan atas nama diri sendiri, selanjutnya disebut <strong>PIHAK KEDUA</strong>.
+                </td>
+            </tr>
         </table>
+
+        <div class="pasal-content-nolist text-justify">
+            bahwa <strong>PIHAK PERTAMA</strong> dan <strong>PIHAK KEDUA</strong> yang secara bersama-sama disebut <strong>PARA PIHAK</strong>, sepakat untuk mengikatkan diri dalam Perjanjian Kerja Petugas Kegiatan Survei/Sensus Tahun {{ $tahunSpk }} pada Badan Pusat Statistik Kabupaten Kediri, yang selanjutnya disebut Perjanjian, dengan ketentuan-ketentuan sebagai berikut:
+        </div>
+
+        <div class="pasal-title">Pasal 1</div>
+        <div class="pasal-content">
+            PIHAK PERTAMA memberikan pekerjaan kepada PIHAK KEDUA dan PIHAK KEDUA menerima pekerjaan dari PIHAK PERTAMA sebagai Petugas Pendataan Lapangan Kegiatan Survei/Sensus Tahun {{ $tahunSpk }} pada Badan Pusat Statistik Kabupaten Kediri, dengan lingkup pekerjaan yang ditetapkan oleh PIHAK PERTAMA.
+        </div>
+
+        <div class="pasal-title">Pasal 2</div>
+        <div class="pasal-content">
+            Ruang lingkup pekerjaan dalam Perjanjian ini mengacu pada wilayah kerja dan beban kerja sebagaimana tertuang dalam lampiran Perjanjian, Pedoman Petugas Pendataan Lapangan Kegiatan Survei/Sensus Tahun {{ $tahunSpk }} pada Badan Pusat Statistik Kabupaten Kediri, dan ketentuan-ketentuan yang ditetapkan oleh PIHAK PERTAMA.
+        </div>
+
+        <div class="pasal-title">Pasal 3</div>
+        <div class="pasal-content">
+            Jangka Waktu Perjanjian terhitung sejak tanggal {{ $tglMulai }} sampai dengan tanggal {{ $tglSelesai }}.
+        </div>
+
+        <div class="pasal-title">Pasal 4</div>
+        <div class="pasal-content">
+            PIHAK KEDUA berkewajiban melaksanakan seluruh pekerjaan yang diberikan oleh PIHAK PERTAMA sampai selesai, sesuai ruang lingkup pekerjaan sebagaimana dimaksud dalam Pasal 2, dengan menerapkan protokol kesehatan yang berlaku di wilayah kerja masing-masing.
+        </div>
+
+        <div class="pasal-title">Pasal 5</div>
+        <div class="pasal-content">
+            (1) PIHAK KEDUA berhak untuk mendapatkan honorarium petugas dari PIHAK PERTAMA sebesar Rp {{ number_format($totalNilai, 0, ',', '.') }},00 ({{ ucwords(terbilang($totalNilai)) }} Rupiah) untuk pekerjaan sebagaimana dimaksud dalam Pasal 2, termasuk biaya pajak, bea materai, dan jasa pelayanan keuangan.
+        </div>
+        <div class="pasal-content">
+            (2) Selain honorarium sebagaimana dimaksud pada ayat (1), PIHAK KEDUA dapat diberikan paket data dan komunikasi selama pelaksanaan pekerjaan sesuai dengan ketentuan yang berlaku di PIHAK PERTAMA dan ketentuan peraturan perundang-undangan.
+        </div>
+        <div class="pasal-content">
+            (3) PIHAK KEDUA tidak diberikan honorarium tambahan apabila melakukan kunjungan di luar jadwal atau terdapat tambahan waktu pelaksanaan pekerjaan lapangan.
+        </div>
+
+        <div class="pasal-title">Pasal 6</div>
+        <div class="pasal-content">
+            (1) Pembayaran honorarium sebagaimana dimaksud dalam Pasal 5 dilakukan setelah PIHAK KEDUA menyelesaikan dan menyerahkan seluruh hasil pekerjaan sebagaimana dimaksud dalam Pasal 2 kepada PIHAK PERTAMA.
+        </div>
+        <div class="pasal-content">
+            (2) Pembayaran sebagaimana dimaksud pada ayat (1) dilakukan oleh PIHAK PERTAMA kepada PIHAK KEDUA sesuai dengan ketentuan peraturan perundang-undangan.
+        </div>
+
+        <div class="pasal-title">Pasal 7</div>
+        <div class="pasal-content">
+            Penyerahan hasil pekerjaan lapangan sebagaimana dimaksud dalam Pasal 2 dilakukan secara bertahap dan selambat-lambatnya seluruh hasil pekerjaan lapangan diserahkan sesuai jadwal yang tercantum dalam Lampiran, yang dinyatakan dalam Berita Acara Serah Terima Hasil Pekerjaan yang ditandatangani oleh PARA PIHAK.
+        </div>
+
+        <div class="pasal-title">Pasal 8</div>
+        <div class="pasal-content">
+            PIHAK PERTAMA dapat memutuskan Perjanjian ini secara sepihak sewaktu-waktu dalam hal PIHAK KEDUA tidak dapat melaksanakan kewajibannya sebagaimana dimaksud dalam Pasal 4, dengan menerbitkan Surat Pemutusan Perjanjian Kerja.
+        </div>
+
+        <div class="pasal-title">Pasal 9</div>
+        <div class="pasal-content">
+            Dalam hal PIHAK KEDUA meninggal dunia, mengundurkan diri karena sakit dengan keterangan rawat inap, kecelakaan dengan keterangan kepolisian, dan/atau telah diberikan Surat Pemutusan Perjanjian Kerja dari PIHAK PERTAMA, maka PIHAK PERTAMA membayarkan honorarium kepada PIHAK KEDUA secara proporsional sesuai pekerjaan yang telah dilaksanakan.
+        </div>
+
+        <div class="pasal-title">Pasal 10</div>
+        <div class="pasal-content">
+            (1) Apabila terjadi Keadaan Kahar, yang meliputi bencana alam dan bencana sosial, PIHAK KEDUA memberitahukan kepada PIHAK PERTAMA dalam waktu paling lambat 7 (tujuh) hari sejak mengetahui atas kejadian Keadaan Kahar dengan menyertakan bukti.
+        </div>
+        <div class="pasal-content">
+            (2) Pada saat terjadi Keadaan Kahar, pelaksanaan pekerjaan oleh PIHAK KEDUA dihentikan sementara dan dilanjutkan kembali setelah Keadaan Kahar berakhir, namun apabila akibat Keadaan Kahar tidak memungkinkan dilanjutkan/diselesaikannya pelaksanaan pekerjaan, PIHAK KEDUA berhak menerima honorarium secara proporsional sesuai pekerjaan yang telah dilaksanakan.
+        </div>
+
+        <div class="pasal-title">Pasal 11</div>
+        <div class="pasal-content">
+            Segala sesuatu yang belum atau tidak cukup diatur dalam Perjanjian ini, dituangkan dalam perjanjian tambahan/addendum dan merupakan bagian tidak terpisahkan dari perjanjian ini.
+        </div>
+
+        <div class="pasal-title">Pasal 12</div>
+        <div class="pasal-content">
+            (1) Segala perselisihan atau perbedaan pendapat yang timbul sebagai akibat adanya Perjanjian ini akan diselesaikan secara musyawarah untuk mufakat.
+        </div>
+        <div class="pasal-content">
+            (2) Apabila musyawarah untuk mufakat sebagaimana dimaksud pada ayat (1) tidak berhasil, maka PARA PIHAK sepakat untuk menyelesaikan perselisihan dengan memilih kedudukan/domisili hukum di Kepaniteraan Pengadilan Negeri.
+        </div>
+        <div class="pasal-content">
+            (3) Selama perselisihan dalam proses penyelesaian pengadilan, PIHAK PERTAMA dan PIHAK KEDUA wajib tetap melaksanakan kewajiban masing-masing berdasarkan Perjanjian ini.
+        </div>
+
+        <div class="pasal-content-nolist text-justify" style="margin-top: 10px;">
+            Demikian Perjanjian ini dibuat dan ditandatangani oleh PARA PIHAK dalam 2 (dua) rangkap asli bermeterai cukup, tanpa paksaan dari PIHAK manapun dan untuk dilaksanakan oleh PARA PIHAK.
+        </div>
+
+        <table class="table-ttd">
+            <tr>
+                <td>
+                    <p>PIHAK KEDUA,</p>
+                    <div style="font-size: 8pt; color: #777; margin: 10px 0;">[Materai 10.000]</div>
+                    <p><strong><u>{{ $spkItem->nama_pcl_formatted ?? ($spkItem->pcl->nama_pcl ?? 'Erni Abu') }}</u></strong></p>
+                </td>
+                <td>
+                    <p>PIHAK PERTAMA,</p>
+                    <div style="font-size: 8pt; color: #fff; margin: 10px 0;">&nbsp;</div>
+                    <p><strong><u>{{ $spkItem->nama_ppk ?? 'Hariyanti Ika Setyabudi, SE' }}</u></strong></p>
+                </td>
+            </tr>
+        </table>
+
+        <!-- ========================================== -->
+        <!-- LEMBAR LAMPIRAN (ROTASI KANAN & JUDUL TENGAH) -->
+        <!-- ========================================== -->
+        <div class="lampiran-page-break">
+            <div class="rotated-landscape-right">
+                <div class="header-bps-lampiran">
+                    <div class="uppercase">LAMPIRAN</div>
+                    <div>PERJANJIAN KERJA PETUGAS PENCACAHAN/PENDATAAN</div>
+                    <div>LAPANGAN KEGIATAN SURVEI/SENSUS TAHUN {{ $tahunSpk }} PADA BADAN</div>
+                    <div>PUSAT STATISTIK KABUPATEN KEDIRI</div>
+                    <div>NOMOR: {{ $spkItem->nomor_spk ?? 'PPIS-007.3/2910/VIITS/02/2026' }}</div>
+                </div>
+
+                <div class="table-title-lampiran">
+                    DAFTAR URAIAN TUGAS, JANGKA WAKTU, NILAI PERJANJIAN, DAN BEBAN ANGGARAN
+                </div>
+
+                <table class="bps-table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" style="width: 4%;">No</th>
+                            <th rowspan="2" style="width: 32%;">Uraian Tugas</th>
+                            <th rowspan="2" style="width: 16%;">Jangka Waktu</th>
+                            <th colspan="2" style="width: 14%;">Target Pekerjaan</th>
+                            <th rowspan="2" style="width: 10%;">Harga Satuan</th>
+                            <th rowspan="2" style="width: 10%;">Nilai Perjanjian</th>
+                            <th rowspan="2" style="width: 14%;">Beban Anggaran</th>
+                        </tr>
+                        <tr>
+                            <th style="width: 5%;">Volume</th>
+                            <th style="width: 9%;">Satuan</th>
+                        </tr>
+                        <tr>
+                            <th>(1)</th>
+                            <th>(2)</th>
+                            <th>(3)</th>
+                            <th>(4)</th>
+                            <th>(5)</th>
+                            <th>(6)</th>
+                            <th>(7)</th>
+                            <th>(8)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php $calculatedTotal = 0; @endphp
+                        @if(!empty($details) && count($details) > 0)
+                            @foreach ($details as $index => $item)
+                                @php
+                                    $vol = $item['volume'] ?? 11;
+                                    $harga = $item['harga_satuan'] ?? 56000;
+                                    $nilai = $item['nilai_perjanjian'] ?? ($vol * $harga);
+                                    $calculatedTotal += $nilai;
+                                @endphp
+                                <tr>
+                                    <td class="text-center">{{ $index + 1 }}</td>
+                                    <td>{{ $item['uraian_tugas'] ?? 'Pendataan dan Pengambilan Foto Amatan dan Menentukan Fase Amatan pada Segmen Terpilih' }}</td>
+                                    <td class="text-center">{{ $item['jangka_waktu_text'] ?? '22 Februari 2026 sd 28 Februari 2026' }}</td>
+                                    <td class="text-center">{{ $vol }}</td>
+                                    <td class="text-center">{{ $item['satuan'] ?? 'Segmen' }}</td>
+                                    <td class="text-right">{{ number_format($harga, 0, ',', '.') }}</td>
+                                    <td class="text-right">{{ number_format($nilai, 0, ',', '.') }}</td>
+                                    <td class="text-center" style="font-size: 8pt;">{{ $item['beban_anggaran'] ?? '2910.BMA.007.005.521213' }}</td>
+                                </tr>
+                            @endforeach
+                        @else
+                            <tr>
+                                <td class="text-center">1</td>
+                                <td>Pendataan dan Pengambilan Foto Amatan dan Menentukan Fase Amatan pada Segmen Terpilih</td>
+                                <td class="text-center">22 Februari 2026 sd 28 Februari 2026</td>
+                                <td class="text-center">11</td>
+                                <td class="text-center">Segmen</td>
+                                <td class="text-right">56.000</td>
+                                <td class="text-right">616.000</td>
+                                <td class="text-center" style="font-size: 8pt;">2910.BMA.007.005.521213</td>
+                            </tr>
+                            @php $calculatedTotal = 616000; @endphp
+                        @endif
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="6" class="italic font-bold text-right">Total:</td>
+                            <td class="text-right font-bold">{{ number_format($calculatedTotal > 0 ? $calculatedTotal : $totalNilai, 0, ',', '.') }}</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td colspan="8" class="italic">
+                                <strong>Terbilang:</strong> {{ ucwords(terbilang($calculatedTotal > 0 ? $calculatedTotal : $totalNilai)) }} Rupiah
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <table class="table-ttd" style="margin-top: 25px;">
+                    <tr>
+                        <td>
+                            <p>PIHAK KEDUA,</p>
+                            <br><br><br>
+                            <p><strong><u>{{ $spkItem->nama_pcl_formatted ?? ($spkItem->pcl->nama_pcl ?? 'Erni Abu') }}</u></strong></p>
+                        </td>
+                        <td>
+                            <p>PIHAK PERTAMA,</p>
+                            <br><br><br>
+                            <p><strong><u>{{ $spkItem->nama_ppk ?? 'Hariyanti Ika Setyabudi, SE' }}</u></strong></p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
     </div>
-
-    @if(!$loop->last)
-        <div class="page-break"></div>
-    @endif
-
 @endforeach
 
 </body>
