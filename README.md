@@ -1,10 +1,20 @@
 # 📊 SI-Mantra
 
+<p align="center">
+  <img src="public/images/logobps.png" alt="Logo SI-Mantra" width="180" />
+</p>
+
 ### Sistem Informasi Manajemen dan Monitoring Honor Mitra BPS Kabupaten Kediri
 
 **SI-Mantra** adalah aplikasi berbasis web yang dikembangkan untuk mendukung administrasi dan monitoring mitra BPS Kabupaten Kediri secara terintegrasi. Sistem ini mencakup pengelolaan data mitra, kegiatan survei, import data Excel, monitoring honor, pengelolaan dokumen, serta pengaturan sistem yang mendukung kebutuhan operasional internal.
 
 Saat ini, proyek ini sudah digunakan dalam bentuk aplikasi yang lebih matang dan menyesuaikan dengan tampilan dashboard serta alur kerja yang saat ini berjalan di lapangan.
+
+## 📸 Tangkapan Layar
+
+<p align="center">
+  <img src="public/images/dashboard-preview.svg" alt="Dashboard SI-Mantra" width="100%" />
+</p>
 
 ---
 
