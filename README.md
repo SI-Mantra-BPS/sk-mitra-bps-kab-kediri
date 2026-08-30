@@ -13,7 +13,7 @@ Saat ini, proyek ini sudah digunakan dalam bentuk aplikasi yang lebih matang dan
 ## 📸 Tangkapan Layar
 
 <p align="center">
-  <img src="public/images/dashboard-preview.svg" alt="Dashboard SI-Mantra" width="100%" />
+  <img src="public/images/dashboard-preview.png" alt="Dashboard SI-Mantra" width="100%" />
 </p>
 
 ---
